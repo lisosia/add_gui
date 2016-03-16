@@ -1,17 +1,23 @@
 %h1 views/table.haml
 
-%table(border="1")
-  %thead
-    %tr
-      - for h in @display_cols.map{|i| @table.headers[i] }
-        %th= h.to_s
-  %tbody
-    - for row_n in 0...(@table.size)
-      - row = @table[row_n]
-      %tr
-        - for cell in @display_cols.map{|i| row[i]}
-          %td= cell.to_s
-        %td
-          %input(type="checkbox" name="#{1}")= row_n.to_s
-          -# %button(type="button" name="#{1}")= row_n.to_s
+- for slide,rows in @table.group_by{|r| r.values_at('slide').first}
+  %p ===================================
+  %form(action="/" method="post")
+    %input(type="hidden" name="slide" value="#{slide}")
+    %input(type="submit" value="Send  slide:#{slide}" class="button")
 
+    %table(border="1")
+      %thread
+        %tr
+          - for header in @show_headers
+            %th= header.to_s
+      %tbody
+        - for row in rows
+          %tr
+            - for cell in row.values_at(* @show_headers)
+              %td= cell.to_s
+            - lib_id = row.values_at('library_id')[0].to_s
+            %td
+              %input(type="checkbox" name="check[]" value="#{lib_id}")
+            %td
+              #exist= dir_exists?(slide, lib_id) 
