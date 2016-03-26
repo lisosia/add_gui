@@ -6,3 +6,4 @@ gem 'sinatra-contrib'
 gem 'haml'
 
 gem 'pry'
+gem 'sqlite3'

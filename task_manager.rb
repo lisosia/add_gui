@@ -1,12 +1,20 @@
 class TaskSpawn
 
   def initialize()
-    @pids = []
+    @pids = {}
   end
 
-  def spawn(command, options = {})
-    #opt = {:pgroup => true}
-    @pids << Kernel.spawn(command, options)
+  #def spawn(command, options = {})
+  #  #opt = {:pgroup => true}
+  #  @pids << Kernel.spawn(command, options)
+  #end
+
+  def spawn_task(task, spawn_opts ={})    
+    task.before() if task.respond_to?(:before)
+    pid = Kernel.spawn(task.command() , spawn_opts)
+    raise "pid crash" if @pids[pid]
+    @pids[ pid ] = task
+    # task.after()  if task.respond_to?(:after)
   end
 
   def pids()
@@ -14,19 +22,21 @@ class TaskSpawn
   end
 
   def waitany_nohang()
-    delete_idx = nil
+    delete_key, task = nil,nil
     ret = nil
-    @pids.each_with_index do |p, idx|
+    @pids.each do |p, t|
       pid,status = Process.waitpid2(p, Process::WNOHANG)
       unless pid.nil?
-        delete_idx = idx
+        delete_key = p
+        task = t
         ret = [pid,status]
         break
       end
     end
 
-    if delete_idx
-      @pids.delete_at(delete_idx)
+    if delete_key
+      @pids[delete_key].after()
+      @pids.delete delete_key      
       return ret
     else
       # no task fininshed

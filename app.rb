@@ -38,6 +38,10 @@ post '/' do
   redirect "/processes"
 end 
 
+get '/enqueue' do
+  require "./task_hgmd"
+  tasks.spawn_task(TaskHgmd.new(nil), )
+end
 
 #post '/' do
 #  slide = @params[:slide]
