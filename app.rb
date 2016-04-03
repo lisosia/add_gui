@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 require 'sinatra'
 require 'sinatra/reloader'
 require 'sinatra/config_file'
@@ -11,8 +12,7 @@ require_relative "./ngs_csv.rb"
 config_file_path = './config.yml'
 config_file config_file_path
 
-@table = NGS::readCSV( settings.root + "/sim/ngs.csv")
-@tasks = TaskSpawn.new
+tasks = TaskSpawn.new
 
 before do
   unless File.exists? settings.storage_root
@@ -24,7 +24,8 @@ before do
 end
 
 get '/processes' do
-  " #{@tasks.pids.inspect} "
+  f = tasks.waitany_nohang()
+  "#{tasks.pids.inspect}" + "<br>" + "finished now: #{f.nil? ? 'nasi' : f.inspect()}"
 end
 
 get '/' do
@@ -33,7 +34,7 @@ get '/' do
 end
 
 post '/' do
-  @tasks.spawn("sleep 10")
+  tasks.spawn("sleep 5")
   redirect "/processes"
 end 
 
