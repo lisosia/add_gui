@@ -5,6 +5,7 @@ require 'sinatra/config_file'
 require 'haml'
 require 'pp'
 require 'pry'
+require 'sqlite3'
 require "./task_manager"
 
 require_relative "./ngs_csv.rb"
@@ -18,14 +19,9 @@ before do
   unless File.exists? settings.storage_root
     raise "invalid storage_root path<#{settings.storage_root}> specified in configfile<#{config_file_path}>"
   end
-  @table = NGS::readCSV( settings.root + "/sim/ngs.csv")
+  @table = NGS::readCSV( settings.ngs_file )
   @show_headers = ['slide', 'run_name', 'application', 'library_id']
 
-end
-
-get '/processes' do
-  f = tasks.waitany_nohang()
-  "#{tasks.pids.inspect}" + "<br>" + "finished now: #{f.nil? ? 'nasi' : f.inspect()}"
 end
 
 get '/' do
@@ -33,14 +29,21 @@ get '/' do
   haml :table
 end
 
-post '/' do
-  tasks.spawn("sleep 5")
-  redirect "/processes"
-end 
+get '/process' do
+  @last_tasks = nil
+  begin
+    db = SQLite3::Database.open("tmp/tmp_tasklog.sqlite3")
+    @last_tasks = db.execute("select rowid,* from tasks order by rowid desc limit 6;")
+  ensure
+    db.close if db
+  end
+  f = tasks.waitany_nohang()
+  haml :process
+end
 
 get '/enqueue' do
   require "./task_hgmd"
-  tasks.spawn_task(TaskHgmd.new(nil), )
+  tasks.spawn_task(TaskHgmd.new(nil) )
 end
 
 #post '/' do

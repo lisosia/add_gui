@@ -14,6 +14,7 @@ class TaskSpawn
     pid = Kernel.spawn(task.command() , spawn_opts)
     raise "pid crash" if @pids[pid]
     @pids[ pid ] = task
+    task.after_spawn(pid) if task.respond_to?(:after_spawn)
     # task.after()  if task.respond_to?(:after)
   end
 
@@ -35,7 +36,7 @@ class TaskSpawn
     end
 
     if delete_key
-      @pids[delete_key].after()
+      @pids[delete_key].end() if task.respond_to?(:end)
       @pids.delete delete_key      
       return ret
     else

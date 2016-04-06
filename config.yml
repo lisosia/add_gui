@@ -1,1 +1,2 @@
 storage_root: ./sim/storage/
+ngs_file: ./sim/ngs.csv
