@@ -25,9 +25,23 @@ before do
 end
 
 get '/' do
-  @display_cols = NGS::cols ['slide', 'run_name', 'application']
+  @show_headers = ['slide', 'run_name', 'application', 'library_id']
   haml :table
 end
+
+#post '/' do
+#  slide = @params[:slide]
+#  library_ids = @table.select{|row| row['slide'] == slide}.map{|row| row['library_id'] }
+#  library_ids_checked = params[:check]
+#  raise "not such slide<#{slide}>" if library_ids.include? nil
+#  process(slide, library_ids,library_ids_checked )
+#end
+
+get '/all' do
+  @show_headers = NGS::HEADERS
+  haml :table
+end
+
 
 get '/process' do
   @last_tasks = nil
@@ -46,18 +60,6 @@ get '/enqueue' do
   tasks.spawn_task(TaskHgmd.new(nil) )
 end
 
-#post '/' do
-#  slide = @params[:slide]
-#  library_ids = @table.select{|row| row['slide'] == slide}.map{|row| row['library_id'] }
-#  library_ids_checked = params[:check]
-#  raise "not such slide<#{slide}>" if library_ids.include? nil
-#  process(slide, library_ids,library_ids_checked )
-#end
-
-
-get '/all' do
-  haml :table
-end
 
 def dir_exists?(slide, library_id)
   raise "args include nil" if slide.nil? or library_id.nil?
