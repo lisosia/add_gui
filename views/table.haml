@@ -20,4 +20,4 @@
             %td
               %input(type="checkbox" name="check[]" value="#{lib_id}")
             %td
-              #exist= dir_exists?(slide, lib_id) 
+              #exist= dir_exists?(slide, lib_id, row_values_at('prep_lit') ) 

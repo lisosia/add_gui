@@ -61,11 +61,30 @@ get '/enqueue' do
 end
 
 
-def dir_exists?(slide, library_id)
+def dir_exists?(slide, library_id, prep_kit)
   raise "args include nil" if slide.nil? or library_id.nil?
-  p = settings.storage_root + '/' + slide.to_s + '/' + library_id.to_s
+  p = settings.storage_root + '/' + slide.to_s + '/' + library_id.to_s + get_suffix(prep_kit)
   #return p
   File.exists? (p)
+end
+
+def get_suffix(prep_kit)
+  case prep_kit
+  when /^N.A./ return ''
+  when /^Illumina TruSeq/ return '_TruSeq'
+  when /^Agilent SureSelect custom 0.5Mb/ return '_SSc0_5Mb'
+  when /^Agilent SureSelect custom 50Mb/ return '_SS50Mb'
+  when /^Agilent SureSelect v4\+UTR/ return '_SS4UTR'
+  when /^Agilent SureSelect v5\+UTR/ return '_SS5UTR'
+  when /^Agilent SureSelect v6\+UTR/ return '_SS6UTR'
+  when /^Agilent SureSelect v5/ return '_SS5'
+  when /^Amplicon/ return '_Amplicon'
+  when "RNA" return '_RNA'
+  when /^TruSeq DNA PCR-Free Sample Prep Kit/ return '_WG'
+  else
+    STDERR.puts "WARNING Uninitilalized value; #{prep_kit}"
+  end
+  return ''
 end
 
 def process(slide, library_ids, checked)
