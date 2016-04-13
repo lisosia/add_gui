@@ -110,11 +110,11 @@ def prepare_same_suffix(slide, checked)
 
   `mkdir #{settings.root}/log`
   cmd = <<-EOS
-  perl #{settings.root}/calc_dup/make_run_takearg.pl --run=#{slide} --run-name=#{run_name} --suffix=#{suffix} --library_ids=#{ids} \\ 
+  perl #{settings.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library_ids #{ids} \\ 
   >> #{settings.root}/log/#{slide}.log \\
   >> #{settings.root}/log/#{slide}.errlog
   EOS
-  `echo #{cmd.inspect} >> #{settings.root}/log/tmplog `
+  `echo #{cmd} >> #{settings.root}/log/tmplog `
   #return
   `#{cmd}`
 end
