@@ -33,7 +33,7 @@ post '/' do
   redirect '/' if @params[:check].nil? 
   rows = @table.select{|r| r['slide'] == slide}
   library_ids_checked = params[:check].map{ |lib_id| @table.select{|r| r['library_id'] == lib_id}[0] }
-  raise "not such slide<#{slide}>" if library_ids_checked.include? nil
+  raise "not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
 
   prepare(slide, library_ids_checked )
   redirect '/'
