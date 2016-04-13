@@ -8,8 +8,11 @@ use Getopt::Long;
 my ($LIBID_LIST_RAW, $RUN, $RUN_NAME, $SUFFIX) = (undef,undef,undef,undef);
 GetOptions ("library-ids=s" => $LIBID_LIST_RAW , # 7308_1, 7308_2, ,,,
 "run=s" => $RUN , # slide
-"run-name=s" => $RUN_NAME,
-"suffix=s" => $SUFFIX); # run_name ex. 372813_sn38210_asdh3219sada
+"run-name=s" => $RUN_NAME, # run_name ex. 372813_sn38210_asdh3219sada
+"suffix=s" => $SUFFIX); # ex. _SS6UTR 
+
+#suffix is not always same in one slide($RUN in this script)
+#but this perl-script would be called with args of[ samples with same prep_kit/suffix ] 
 
 die 'missing parameter' unless (defined $LIBID_LIST_RAW  or defined $RUN or defined $RUN_NAME or defined $SUFFIX);
 
@@ -63,7 +66,7 @@ if($SUFFIX eq "_RNA"){
 
 foreach my $SAMPLE (@LIBID_LIST){ # START of each sample loop
     
-    print "SAMPLE: $RUN/$SAMPLE$SUFFIXn";
+    print "SAMPLE: $RUN/$SAMPLE$SUFFIX\n";
     $SAMPLE_NAME .= " $SAMPLE$SUFFIX";
     
     my $GENOME_FLAG = 0;
@@ -88,7 +91,7 @@ foreach my $SAMPLE (@LIBID_LIST){ # START of each sample loop
         foreach(@READ_DIR){
             chomp;
             if(!-d $_){
-                print "Error: $_ was not found!n";
+                print "Error: $_ was not found!\n";
                 next;
             }
             if($RUN_NO[$i] =~ /^PE/){
@@ -105,7 +108,7 @@ foreach my $SAMPLE (@LIBID_LIST){ # START of each sample loop
     $SAMPLE .= $NO . $SUFFIX;
     
     my $FASTQ_DIR="$RUN/$SAMPLE/$GENOME/fastq";
-    !system("mkdir -p $FASTQ_DIR") || die "Error mkdirn";
+    !system("mkdir -p $FASTQ_DIR") || die "Error mkdir\n";
     
     my $FASTQ_PE="";
     my $FASTQ_SE="";
@@ -120,8 +123,8 @@ foreach my $SAMPLE (@LIBID_LIST){ # START of each sample loop
             
             $FILE_BASE="$SAMPLE.$RUN_PE[$i].$temp[3]_$temp[5]_$temp[4]";
             $cmd="ln -s $_ $FASTQ_DIR/$FILE_BASE.fastq.gz";
-            #    print "$cmdn";
-            !system("$cmd") || die "Errorn";
+            #    print "$cmd\n";
+            !system("$cmd") || die "Error\n";
             
             if($temp[4] eq "1"){
                 $FILE_BASE="$SAMPLE.$RUN_PE[$i].$temp[3]_$temp[5]";
@@ -144,8 +147,8 @@ foreach my $SAMPLE (@LIBID_LIST){ # START of each sample loop
             
             $FILE_BASE="$SAMPLE.$RUN_SE[$i].$temp[3]_$temp[5]_$temp[4]";
             $cmd="ln -s $_ $FASTQ_DIR/$FILE_BASE.fastq.gz";
-            print "$cmdn";
-            !system("$cmd") || die "Errorn";
+            print "$cmd\n";
+            !system("$cmd") || die "Error\n";
             
             if($temp[4] eq "1"){
                 $FILE_BASE="$SAMPLE.$RUN_SE[$i].$temp[3]_$temp[5]";
@@ -162,16 +165,16 @@ foreach my $SAMPLE (@LIBID_LIST){ # START of each sample loop
     ### make run.sh
     if(!$RNA_FLAG){
         my $thread=`gxpc e hostname | wc -l`;
-        $thread=~s/n//g;
+        $thread=~s/\n//g;
         
         my $RUN_FILE="$RUN/$SAMPLE/run.sh";
-        open(OUT,">$RUN_FILE") || die "Errorn";
+        open(OUT,">$RUN_FILE") || die "Error\n";
         
         print OUT "gxpc make -k -j $thread -f /nfs/6/personal-genome/makefiles/makefile_md5.nfs ";
-        print OUT "SAMPLE=$SAMPLE PE_READS="$FASTQ_PE" SE_READS="$FASTQ_SE" ";
+        print OUT "SAMPLE=$SAMPLE PE_READS=\"$FASTQ_PE\" SE_READS=\"$FASTQ_SE\" ";
         print OUT "SURE_POS=$SURE_POS";
         print OUT " TARGET=genome" if($GENOME_FLAG);
-        print OUT "n";
+        print OUT "\n";
         close(OUT);
     }
     
@@ -183,26 +186,26 @@ open(OUT,">$RUN_SCRIPT") || die "Cannot create $RUN_SCRIPT";
 print OUT "BASE_DIR=/work/HiSeq2000/$RUN
 for DIR in $SAMPLE_NAME
 do
-echo $DIRn";
+echo \$DIR\n";
 
 if(!$RNA_FLAG){
-    print OUT "tcd $BASE_DIR/$DIR && date >> make.log && (time sh run.sh) >> make.log 2>> make.logn";
-    print OUT "tcd $BASE_DIR/ && sh /work/yoshimura/tools/check_results.sh $DIR >> check_results.log 2>> check_results.logn";
+    print OUT "\tcd \$BASE_DIR/\$DIR && date >> make.log && (time sh run.sh) >> make.log 2>> make.log\n";
+    print OUT "\tcd \$BASE_DIR/ && sh /work/yoshimura/tools/check_results.sh \$DIR >> check_results.log 2>> check_results.log\n";
 }
 else{
-    print OUT "tqsub -N RNA-$DIR -o $DIR/make.log -j y /work/HiSeq2000/BaseCall/qsub_rna.sh $DIRn";
+    print OUT "\tqsub -N RNA-\$DIR -o \$DIR/make.log -j y /work/HiSeq2000/BaseCall/qsub_rna.sh \$DIRn";
 }
 
 print OUT "done";
 close(OUT);
 #sub check{
-    #        die("Check SAMPLE!n") if($SAMPLE eq "0242_1_SS4UTR");
+    #        die("Check SAMPLE!\n") if($SAMPLE eq "0242_1_SS4UTR");
     #        for(my $i=0; $i<=$#RUN_PE; $i++){
-        #                die("$RUN_DIR_PE[$i] does not exist!n") if(! -d $RUN_DIR_PE[$i]);
-        #                die("check RUN_DIR_PE[$i]!n") if($RUN_DIR_PE[$i] !~ /$SAMPLE/);
+        #                die("$RUN_DIR_PE[$i] does not exist!\n") if(! -d $RUN_DIR_PE[$i]);
+        #                die("check RUN_DIR_PE[$i]!\n") if($RUN_DIR_PE[$i] !~ /$SAMPLE/);
     #        }
     #        for(my $i=0; $i<=$#RUN_SE; $i++){
-        #               die("$RUN_DIR_SE[$i] does not exist!n") if(! -d $RUN_DIR_SE[$i]);
-        #               die("check RUN_DIR_SE[$i]!n") if($RUN_DIR_SE[$i] !~ /$SAMPLE/);
+        #               die("$RUN_DIR_SE[$i] does not exist!\n") if(! -d $RUN_DIR_SE[$i]);
+        #               die("check RUN_DIR_SE[$i]!\n") if($RUN_DIR_SE[$i] !~ /$SAMPLE/);
     #       }
 #}

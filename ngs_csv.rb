@@ -41,6 +41,14 @@ module NGS
     raise "undefined header_name:#{headernames[r.index nil]}" if r.include? nil
     return r
   end
+  
+  #table of CSV::Rowを受け取り、run_name を返す。同じslideでrun-name矛盾したときのエラー処理等
+  def self.get_run_name(rows) 
+    run_names = rows.map{|r| r['run_name'] }
+    raise 'multi run_name in rows' unless run_names.uniq.size == 1
+    raise 'internal error' if run_names.include? nil
+    return run_names[0]
+  end
 
 end
     

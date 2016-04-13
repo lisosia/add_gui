@@ -21,21 +21,23 @@ before do
   end
   @table = NGS::readCSV( settings.ngs_file )
   @show_headers = ['slide', 'run_name', 'application', 'library_id']
-
 end
 
 get '/' do
-  @show_headers = ['slide', 'run_name', 'application', 'library_id']
-  haml :table
+  @show_headers = ['slide', 'run_name', 'application', 'library_id', 'prep_kit']
+  haml :table, :locals => {:check_dir => @params[:check_dir]}
 end
 
-#post '/' do
-#  slide = @params[:slide]
-#  library_ids = @table.select{|row| row['slide'] == slide}.map{|row| row['library_id'] }
-#  library_ids_checked = params[:check]
-#  raise "not such slide<#{slide}>" if library_ids.include? nil
-#  process(slide, library_ids,library_ids_checked )
-#end
+post '/' do
+  slide = @params[:slide]
+  redirect '/' if @params[:check].nil? 
+  rows = @table.select{|r| r['slide'] == slide}
+  library_ids_checked = params[:check].map{ |lib_id| @table.select{|r| r['library_id'] == lib_id}[0] }
+  raise "not such slide<#{slide}>" if library_ids_checked.include? nil
+
+  prepare(slide, library_ids_checked )
+  redirect '/'
+end
 
 get '/all' do
   @show_headers = NGS::HEADERS
@@ -70,23 +72,49 @@ end
 
 def get_suffix(prep_kit)
   case prep_kit
-  when /^N.A./ return ''
-  when /^Illumina TruSeq/ return '_TruSeq'
-  when /^Agilent SureSelect custom 0.5Mb/ return '_SSc0_5Mb'
-  when /^Agilent SureSelect custom 50Mb/ return '_SS50Mb'
-  when /^Agilent SureSelect v4\+UTR/ return '_SS4UTR'
-  when /^Agilent SureSelect v5\+UTR/ return '_SS5UTR'
-  when /^Agilent SureSelect v6\+UTR/ return '_SS6UTR'
-  when /^Agilent SureSelect v5/ return '_SS5'
-  when /^Amplicon/ return '_Amplicon'
-  when "RNA" return '_RNA'
-  when /^TruSeq DNA PCR-Free Sample Prep Kit/ return '_WG'
+  when /^N.A./ then return ''
+  when /^Illumina TruSeq/ then return '_TruSeq'
+  when /^Agilent SureSelect custom 0.5Mb/ then return '_SSc0_5Mb'
+  when /^Agilent SureSelect custom 50Mb/ then return '_SS50Mb'
+  when /^Agilent SureSelect v4\+UTR/ then return '_SS4UTR'
+  when /^Agilent SureSelect v5\+UTR/ then return '_SS5UTR'
+  when /^Agilent SureSelect v6\+UTR/ then return '_SS6UTR'
+  when /^Agilent SureSelect v5/ then return '_SS5'
+  when /^Amplicon/ then return '_Amplicon'
+  when "RNA" then return '_RNA'
+  when /^TruSeq DNA PCR-Free Sample Prep Kit/ then return '_WG'
   else
     STDERR.puts "WARNING Uninitilalized value; #{prep_kit}"
-  end
-  return ''
+    return '___NONE___'
+  end  
 end
 
-def process(slide, library_ids, checked)
-  "process<br>-- slide : #{slide}<br>-- library_ids : #{library_ids}<br>-- checked : #{checked}"
+# - checked - Array of CSV::Row
+def prepare(slide, checked)
+  raise unless ( checked.is_a? Array and checked[0].is_a? CSV::Row)
+
+  checked.group_by{|r| r['prep_kit']}.each do |prep, row| 
+    prepare_same_suffix(slide, row)
+  end
+end
+
+def prepare_same_suffix(slide, checked)
+  # get run-name from NGS-file
+  prep_kits = checked.map{|r| r['prep_kit'] }
+
+  raise 'internal_error' unless prep_kits.uniq.size == 1
+  suffix = get_suffix( prep_kits[0] )
+
+  run_name = NGS::get_run_name(checked)
+  ids = checked.map{|r| r['library_id']}.join(',')
+
+  `mkdir #{settings.root}/log`
+  cmd = <<-EOS
+  perl #{settings.root}/calc_dup/make_run_takearg.pl --run=#{slide} --run-name=#{run_name} --suffix=#{suffix} --library_ids=#{ids} \ 
+  >> #{settings.root}/log/#{slide}.log \
+  >> #{settings.root}/log/#{slide}.errlog
+  EOS
+  `echo #{cmd.inspect} >> #{settings.root}/log/tmplog `
+  #return
+  `#{cmd}`
 end
