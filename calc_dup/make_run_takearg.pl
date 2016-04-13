@@ -6,10 +6,10 @@ use Getopt::Long;
 
 #get args
 my ($LIBID_LIST_RAW, $RUN, $RUN_NAME, $SUFFIX) = (undef,undef,undef,undef);
-GetOptions ("library-ids=s" => $LIBID_LIST_RAW , # 7308_1, 7308_2, ,,,
-"run=s" => $RUN , # slide
-"run-name=s" => $RUN_NAME, # run_name ex. 372813_sn38210_asdh3219sada
-"suffix=s" => $SUFFIX); # ex. _SS6UTR 
+GetOptions ("library-ids=s" => \$LIBID_LIST_RAW , # 7308_1, 7308_2, ,,,
+"run=s" => \$RUN , # slide
+"run-name=s" => \$RUN_NAME, # run_name ex. 372813_sn38210_asdh3219sada
+"suffix=s" => \$SUFFIX); # ex. _SS6UTR 
 
 #suffix is not always same in one slide($RUN in this script)
 #but this perl-script would be called with args of[ samples with same prep_kit/suffix ] 

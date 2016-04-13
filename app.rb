@@ -112,7 +112,7 @@ def prepare_same_suffix(slide, checked)
   cmd = <<-EOS
   perl #{settings.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library_ids #{ids} \\ 
   >> #{settings.root}/log/#{slide}.log \\
-  >> #{settings.root}/log/#{slide}.errlog
+  2>> #{settings.root}/log/#{slide}.errlog
   EOS
   File.open("#{settings.root}/log/tmplog", 'a') {|f| f.write(cmd) }
   #return
