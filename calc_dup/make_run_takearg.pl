@@ -18,8 +18,9 @@ die 'missing parameter' unless (defined $LIBID_LIST_RAW  or defined $RUN or defi
 
 my @LIBID_LIST = split(/,/, $LIBID_LIST_RAW );
 my @RUN_DIR=(
-$RUN_NAME
+"/data/HiSeq2000/$RUN_NAME/Unaligned/"
 );
+# "/data/HiSeq2000/160216_D00734_0060_BC8NAEACXX/Unaligned/"
 
 # my $j=1; ### not used ?
 
@@ -105,7 +106,7 @@ foreach my $SAMPLE (@LIBID_LIST){ # START of each sample loop
         }
     }
     
-    $SAMPLE .= $NO . $SUFFIX;
+    $SAMPLE .= $SUFFIX;
     
     my $FASTQ_DIR="$RUN/$SAMPLE/$GENOME/fastq";
     !system("mkdir -p $FASTQ_DIR") || die "Error mkdir\n";
