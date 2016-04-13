@@ -5,15 +5,18 @@ use File::Basename;
 use Getopt::Long;
 
 #get args
-my ($LIBID_LIST_RAW, $RUN) = (undef,undef);
+my ($LIBID_LIST_RAW, $RUN, $RUN_NAME, $SUFFIX) = (undef,undef,undef,undef);
 GetOptions ("library-ids=s" => $LIBID_LIST_RAW , # 7308_1, 7308_2, ,,,
-"run=s" => $RUN);
+"run=s" => $RUN , # slide
+"run-name=s" => $RUN_NAME,
+"suffix=s" => $SUFFIX); # run_name ex. 372813_sn38210_asdh3219sada
+
+die 'missing parameter' unless (defined $LIBID_LIST_RAW  or defined $RUN or defined $RUN_NAME or defined $SUFFIX);
 
 my @LIBID_LIST = split(/,/, $LIBID_LIST_RAW );
-print "n";
-print $LIBID_LIST[0] . "n";
-print $RUN . "n";
-exit ;
+my @RUN_DIR=(
+$RUN_NAME
+);
 
 # my $j=1; ### not used ?
 
@@ -24,9 +27,14 @@ exit ;
 my $PREFIX="Project_";
 my $SAMPLE_NAME="";
 my @RUN_NO=("PE001");
-my @RUN_DIR=(
-"/data/HiSeq2000/160216_D00734_0060_BC8NAEACXX/Unaligned/"
-);
+
+sub get_sure_pos{ # TODO
+    my ($suf) = @_ || (undef);
+    return "/grid2/personal-genome/BED/S07604624_V6+UTR_Covered.bed" if ($suf eq '_SS6UTR');
+    return "/grid2/personal-genome/BED/SureSelect_All_Exon_50mb_with_annotation_hg19_bed" if ($suf eq 'TruSeq');
+    return '';
+}
+$SURE_POS = get_sure_pos($SUFFIX);
 
 ##my $SURE_POS="/grid2/personal-genome/BED/SureSelect_All_Exon_50mb_with_annotation_hg19_bed";
 #my $SUFFIX="_TruSeq";
@@ -35,8 +43,8 @@ my @RUN_DIR=(
 #my $SURE_POS="/grid2/personal-genome/BED/SureSelect_All_Exon_V4+UTRs_hg19.bed";
 #my $SUFFIX="_SS5UTR";
 #my $SURE_POS="/grid2/personal-genome/BED/S04380219_V5_Core+UTR_Fragments.bed";
-my $SUFFIX="_SS6UTR";
-my $SURE_POS="/grid2/personal-genome/BED/S07604624_V6+UTR_Covered.bed";
+#my $SUFFIX="_SS6UTR";
+#my $SURE_POS="/grid2/personal-genome/BED/S07604624_V6+UTR_Covered.bed";
 #my $SUFFIX="_Amplicon";
 #my $SURE_POS="";
 #my $SUFFIX="_WG";
@@ -53,10 +61,10 @@ if($SUFFIX eq "_RNA"){
     $RNA_FLAG = 1;
 }
 
-foreach my $SAMPLE (@SAMPLE_LIST){ # START of each sample loop
+foreach my $SAMPLE (@LIBID_LIST){ # START of each sample loop
     
-    print "SAMPLE: $RUN/$SAMPLE$NO$SUFFIXn";
-    $SAMPLE_NAME .= " $SAMPLE$NO$SUFFIX";
+    print "SAMPLE: $RUN/$SAMPLE$SUFFIXn";
+    $SAMPLE_NAME .= " $SAMPLE$SUFFIX";
     
     my $GENOME_FLAG = 0;
     my $GENOME = "exome";
