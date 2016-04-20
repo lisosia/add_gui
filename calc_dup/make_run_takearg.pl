@@ -184,7 +184,8 @@ foreach my $SAMPLE (@LIBID_LIST){ # START of each sample loop
 ###  make run script
 my $RUN_SCRIPT="$RUN/auto_run$SUFFIX.sh";
 open(OUT,">$RUN_SCRIPT") || die "Cannot create $RUN_SCRIPT";
-print OUT "BASE_DIR=/work/HiSeq2000/$RUN
+#todo slightly danger
+print OUT "BASE_DIR=./$RUN
 for DIR in $SAMPLE_NAME
 do
 echo \$DIR\n";
