@@ -99,7 +99,7 @@ end
 
 # - checked - Array of CSV::Row
 def prepare(slide, checked)
-  logger.info "prepare called; #{slide},#{checked}"
+  logger.info "prepare called; #{slide}"
   raise 'internal_error' unless ( checked.is_a? Array and checked[0].is_a? CSV::Row)
 
   checked.group_by{|r| r['prep_kit']}.each do |prep, row| 
@@ -110,7 +110,7 @@ def prepare(slide, checked)
 end
 
 def prepare_same_suffix(slide, checked)
-  logger.info "prepare_same_suffix called; #{slide},#{checked}"
+  logger.info "prepare_same_suffix called; #{slide},"
   # get run-name from NGS-file
   prep_kits = checked.map{|r| r['prep_kit'] }
 
@@ -121,12 +121,10 @@ def prepare_same_suffix(slide, checked)
   ids = checked.map{|r| r['library_id']}.join(',')
 
   cmd = <<-EOS
-  perl #{settings.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids} \\ 
-  >>  ./#{slide}.log \\
-  2>> ./#{slide}.errlog
+  perl #{settings.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids}
   EOS
   Dir.chdir(settings.storage_root){
     File.open("./#{slide}.tmplog___", 'w') {|f| f.write(cmd) }
-    exec( cmd )
+    `#{cmd}`
   }
 end
