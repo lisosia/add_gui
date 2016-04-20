@@ -26,7 +26,7 @@ class TaskHgmd
       @row_id = ( db.execute "select last_insert_rowid()" ).flatten()[0]
       db.commit
     ensure
-      db.close()
+      db.close() if db
     end
   end
 

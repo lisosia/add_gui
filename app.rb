@@ -127,4 +127,8 @@ def prepare_same_suffix(slide, checked)
     File.open("./#{slide}.tmplog___", 'w') {|f| f.write(cmd) }
     `#{cmd}`
   }
+
+  require "./task_hgmd"
+  tasks.spawn_task(TaskHgmd.new(nil) )
+
 end
