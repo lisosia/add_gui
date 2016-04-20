@@ -108,15 +108,15 @@ def prepare_same_suffix(slide, checked)
   run_name = NGS::get_run_name(checked)
   ids = checked.map{|r| r['library_id']}.join(',')
 
+  cmd = <<-EOS
+  perl #{settings.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids} \\ 
+  >> #{settings.root}/log/#{slide}.log \\
+  2>> #{settings.root}/log/#{slide}.errlog
+  EOS
   d = "#{settings.storage_root}/#{slide}"
   `mkdir #{d}`
   Dir.chdir(d){
-    cmd = <<-EOS
-    perl #{settings.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids} \\ 
-    >> #{settings.root}/log/#{slide}.log \\
-    2>> #{settings.root}/log/#{slide}.errlog
-    EOS
     File.open("./tmplog___", 'w') {|f| f.write(cmd) }
-  exec( cmd )
+    exec( cmd )
   }
 end
