@@ -15,6 +15,14 @@ config_file config_file_path
 
 tasks = TaskSpawn.new
 
+configure do
+  # logging is enabled by default in classic style applications,
+  # so `enable :logging` is not needed
+  file = File.new("#{settings.root}/log/#{settings.environment}.log", 'a+')
+  file.sync = true
+  use Rack::CommonLogger, file
+end
+
 before do
   unless File.exists? settings.storage_root
     raise "invalid storage_root path<#{settings.storage_root}> specified in configfile<#{config_file_path}>"
