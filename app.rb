@@ -36,7 +36,7 @@ post '/' do
   raise "not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
 
   prepare(slide, library_ids_checked )
-  redirect '/'
+  redirect to('/')
 end
 
 get '/all' do
@@ -91,7 +91,7 @@ end
 
 # - checked - Array of CSV::Row
 def prepare(slide, checked)
-  raise unless ( checked.is_a? Array and checked[0].is_a? CSV::Row)
+  raise 'internal_error' unless ( checked.is_a? Array and checked[0].is_a? CSV::Row)
 
   checked.group_by{|r| r['prep_kit']}.each do |prep, row| 
     prepare_same_suffix(slide, row)
