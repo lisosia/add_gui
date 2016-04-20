@@ -7,9 +7,11 @@ require 'pp'
 require 'pry'
 require 'sqlite3'
 require "./task_manager"
+require 'logger'
 
 require_relative "./ngs_csv.rb"
 
+logger = Logger.new('./log/app.log')
 config_file_path = './config.yml'
 config_file config_file_path
 
@@ -37,13 +39,15 @@ get '/' do
 end
 
 post '/' do
+  logger.info 'post / called'
   slide = @params[:slide]
   redirect '/' if @params[:check].nil? 
   rows = @table.select{|r| r['slide'] == slide}
   library_ids_checked = params[:check].map{ |lib_id| @table.select{|r| r['library_id'] == lib_id}[0] }
   raise "not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
-
+  logger.info 'just before call prepare(). from post /'
   prepare(slide, library_ids_checked )
+  logger.info 'prepare call fin. from post /'
   redirect to('/')
 end
 
@@ -99,14 +103,18 @@ end
 
 # - checked - Array of CSV::Row
 def prepare(slide, checked)
+  logger.info "prepare called; #{slide},#{checked}"
   raise 'internal_error' unless ( checked.is_a? Array and checked[0].is_a? CSV::Row)
 
   checked.group_by{|r| r['prep_kit']}.each do |prep, row| 
     prepare_same_suffix(slide, row)
   end
+  logger.info "prepare fin"
+  return nil
 end
 
 def prepare_same_suffix(slide, checked)
+  logger.info "prepare_same_suffix called; #{slide},#{checked}"
   # get run-name from NGS-file
   prep_kits = checked.map{|r| r['prep_kit'] }
 
