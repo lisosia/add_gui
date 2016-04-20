@@ -147,9 +147,9 @@ foreach my $SAMPLE (@LIBID_LIST){ # START of each sample loop
             $temp[5]=~s/.fastq.gz//g;
             
             $FILE_BASE="$SAMPLE.$RUN_SE[$i].$temp[3]_$temp[5]_$temp[4]";
-            $cmd="ln -s $_ $FASTQ_DIR/$FILE_BASE.fastq.gz";
+            $cmd="ln -s -f $_ $FASTQ_DIR/$FILE_BASE.fastq.gz";
             print "$cmd\n";
-            !system("$cmd") || die "Error\n";
+            !system("$cmd") || die "Error while making link\n";
             
             if($temp[4] eq "1"){
                 $FILE_BASE="$SAMPLE.$RUN_SE[$i].$temp[3]_$temp[5]";

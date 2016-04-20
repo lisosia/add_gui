@@ -11,18 +11,14 @@ require 'logger'
 
 require_relative "./ngs_csv.rb"
 
-logger = Logger.new('./log/app.log')
 config_file_path = './config.yml'
 config_file config_file_path
 
 tasks = TaskSpawn.new
 
+logger = Logger.new('./log/app.log')
 configure do
-  # logging is enabled by default in classic style applications,
-  # so `enable :logging` is not needed
-  file = File.new("#{settings.root}/log/#{settings.environment}.log", 'a+')
-  file.sync = true
-  use Rack::CommonLogger, file
+  use Rack::CommonLogger, logger
 end
 
 before do
