@@ -115,6 +115,5 @@ def prepare_same_suffix(slide, checked)
   2>> #{settings.root}/log/#{slide}.errlog
   EOS
   File.open("#{settings.root}/log/tmplog", 'a') {|f| f.write(cmd) }
-  #return
   `#{cmd}`
 end
