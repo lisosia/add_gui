@@ -6,10 +6,10 @@ require 'haml'
 require 'pp'
 require 'pry'
 require 'sqlite3'
-require "./task_manager"
 require 'logger'
 
-require_relative "./ngs_csv.rb"
+require "./task_manager"
+require "./ngs_csv"
 
 config_file_path = './config.yml'
 config_file config_file_path
@@ -66,8 +66,8 @@ get '/process' do
 end
 
 get '/enqueue' do
-  require "./task_hgmd"
-  tasks.spawn_task(TaskHgmd.new(nil) )
+  require "./task_hgmd2"
+  TaskHgmd.spawn("sleep.sh" , settings.root)
 end
 
 

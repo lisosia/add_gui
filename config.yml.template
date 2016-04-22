@@ -1,2 +1,3 @@
 storage_root: ./sim/storage/
 ngs_file: ./sim/ngs.csv
+db_file: ./tmp/tasklog.sqlite3
