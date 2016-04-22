@@ -66,7 +66,7 @@ get '/process' do
 end
 
 get '/enqueue' do
-  require "./task_hgmd2"
+  require "./task_hgmd"
   TaskHgmd.spawn("sleep.sh" , settings.root)
 end
 
@@ -129,6 +129,6 @@ def prepare_same_suffix(slide, checked)
   }
 
   require "./task_hgmd"
-  tasks.spawn_task(TaskHgmd.new(nil) )
+  TaskHgmd.spawn("sleep.sh" , settings.root)
 
 end
