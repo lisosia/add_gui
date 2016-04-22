@@ -25,10 +25,11 @@ module TaskHgmd
 
   def self.init_db()
     sql = <<-EOS
-    create table if not exists tasks(
-    pid int, 
-    status text,
-    uuid string
+create table if not exists tasks(
+pid int, 
+status text,
+uuid string,
+args string
     )
     EOS
     db = open_db()
@@ -36,11 +37,11 @@ module TaskHgmd
     db.close()
   end 
 
-  def self.add_task(uuid)
+  def self.add_task(uuid, args = nil)
     db = open_db
     db.execute <<-EOS
-insert into tasks(pid, status, uuid)
-values( -1, \"NotDone\", \"#{uuid}\" )
+insert into tasks(pid, status, uuid, args)
+values( -1, \"NotDone\", '#{uuid}', '#{args.to_s}' )
     EOS
     db.close
   end
@@ -66,10 +67,11 @@ values( -1, \"NotDone\", \"#{uuid}\" )
   def self.spawn(bashfile,args = [], dir = Dir.pwd,
    uuid = Time.now.strftime("%Y%m%d-%H_%M_%S%Z") + "--" + SecureRandom.uuid )
     init_db()
-    add_task(uuid)
+    args_str = args.join(" ")
+    add_task(uuid, args_str)
     # http://dba.stackexchange.com/questions/47919/how-do-i-specify-a-timeout-in-sqlite3-from-the-command-line
     bash_cmd = <<-EOS
-bash #{bashfile} #{ args.join(" ") } || exit 1
+bash #{bashfile} #{ args_str } || exit 1
 sqlite3 -init ./etc/set_timeout.sql #{@@db_file} 'UPDATE tasks SET status = \"Done\" WHERE uuid = \"#{uuid}\" '
 exit 0
     EOS

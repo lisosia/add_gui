@@ -27,10 +27,10 @@ end
 post '/' do
   mylog.info 'post / called'
   slide = @params[:slide]
-  redirect '/' if @params[:check].nil? 
+  return "empty post; please return to previous page" if @params[:check].nil? 
   rows = @table.select{|r| r['slide'] == slide}
   library_ids_checked = params[:check].map{ |lib_id| @table.select{|r| r['library_id'] == lib_id}[0] }
-  raise "not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
+  raise "internal eoor; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
   prepare(slide, library_ids_checked )
   redirect to('/')
 end
@@ -42,8 +42,10 @@ end
 
 
 get '/process' do
-  TaskHgmd.run_sql("select * from tasks order by uuid desc limit 5")
-  .map{|e| e.inspect}.join("<br>")
+  tasks = TaskHgmd.run_sql("select pid,status,args,uuid from tasks order by uuid desc limit 5")
+  tasks.map{|e| e.inspect}.join("<br>")
+
+  haml :process ,:locals=>{:tasks => tasks}
 end
 
 get '/enqueue' do
@@ -108,6 +110,6 @@ def prepare_same_suffix(slide, checked)
     `#{cmd}`
   }
 
-  TaskHgmd.spawn("./etc/dummy.sh" , [], settings.root )
+  TaskHgmd.spawn("./etc/dummy.sh" , [slide, ids], settings.root )
 
 end

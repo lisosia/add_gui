@@ -1,5 +1,12 @@
-%a(href = "/enqueue") enqueue link
+%a(href = "/") home
 
-- for task in @last_tasks
-  %p ===================================
-  %p= task.inspect
+%table(border="1")
+  %thread
+    %tr
+      - for header in %w(pid status args uuid)
+        %th= header.to_s
+    %tbody
+      - for task in tasks
+        %tr
+          - for col in task
+            %td= col.to_s
