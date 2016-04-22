@@ -2,23 +2,13 @@
 require 'sinatra'
 require 'sinatra/reloader'
 require 'sinatra/config_file'
-require 'haml'
-require 'pp'
-require 'pry'
-require 'sqlite3'
-require 'logger'
 
-require "./task_manager"
-require "./ngs_csv"
+require "./init.rb"
+include MyLog
 
-config_file_path = './config.yml'
-config_file config_file_path
-
-tasks = TaskSpawn.new
-
-logger = Logger.new('./log/app.log')
+rack_logger = Logger.new('./log/app.log')
 configure do
-  use Rack::CommonLogger, logger
+  use Rack::CommonLogger, rack_logger
 end
 
 before do
@@ -35,15 +25,13 @@ get '/' do
 end
 
 post '/' do
-  logger.info 'post / called'
+  mylog.info 'post / called'
   slide = @params[:slide]
   redirect '/' if @params[:check].nil? 
   rows = @table.select{|r| r['slide'] == slide}
   library_ids_checked = params[:check].map{ |lib_id| @table.select{|r| r['library_id'] == lib_id}[0] }
   raise "not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
-  logger.info 'just before call prepare(). from post /'
   prepare(slide, library_ids_checked )
-  logger.info 'prepare call fin. from post /'
   redirect to('/')
 end
 
@@ -61,7 +49,7 @@ end
 get '/enqueue' do
   require "./task_hgmd"
   pid = TaskHgmd.spawn("./etc/dummy.sh" , [], settings.root )
-  "#{pid.to_s}"
+  "task spawned, pid = #{pid.to_s}"
 end
 
 
@@ -69,7 +57,7 @@ def dir_exists?(slide, library_id, prep_kit)
   raise "args include nil" if slide.nil? or library_id.nil?
   p = settings.storage_root + '/' + slide.to_s + '/' + library_id.to_s + get_suffix(prep_kit)
   #return p
-  File.exists? (p)
+  File.exists? p
 end
 
 def get_suffix(prep_kit)
@@ -93,18 +81,16 @@ end
 
 # - checked - Array of CSV::Row
 def prepare(slide, checked)
-  logger.info "prepare called; #{slide}"
   raise 'internal_error' unless ( checked.is_a? Array and checked[0].is_a? CSV::Row)
 
   checked.group_by{|r| r['prep_kit']}.each do |prep, row| 
     prepare_same_suffix(slide, row)
   end
-  logger.info "prepare fin"
   return nil
 end
 
 def prepare_same_suffix(slide, checked)
-  logger.info "prepare_same_suffix called; #{slide},"
+  mylog.info "prepare_same_suffix called; #{slide}, #{checked}"
   # get run-name from NGS-file
   prep_kits = checked.map{|r| r['prep_kit'] }
 
@@ -122,7 +108,6 @@ def prepare_same_suffix(slide, checked)
     `#{cmd}`
   }
 
-  require "./task_hgmd"
   TaskHgmd.spawn("./etc/dummy.sh" , [], settings.root )
 
 end

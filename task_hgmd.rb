@@ -3,8 +3,9 @@ require 'securerandom'
 require 'yaml'
 
 module TaskHgmd
+  extend MyLog
 
-  @@db_file = YAML.load_file("config.yml")["db_file"]
+  @@db_file = $SETTINGS.db_file
   raise "db_dile entry not exists in config file" if @@db_file.nil?
 
   def self.open_db()
