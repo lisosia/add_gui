@@ -48,6 +48,11 @@ get '/process' do
   haml :process ,:locals=>{:tasks => tasks}
 end
 
+get '/progress/:slide' do
+  files = Dir.glob( File.join(settings.root, "sim/storage", params['slide'], "*" ) )
+  files.map{|f| f.to_s + " ___test"}.join("<br>")
+end
+
 get '/enqueue' do
   require "./task_hgmd"
   pid = TaskHgmd.spawn("./etc/dummy.sh" , [], settings.root )

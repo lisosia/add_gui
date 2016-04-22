@@ -10,3 +10,5 @@
         %tr
           - for col in task
             %td= col.to_s
+          %td
+            %a(href = "/progress/#{task[2].split[0]}") progress
