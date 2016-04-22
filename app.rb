@@ -54,20 +54,14 @@ end
 
 
 get '/process' do
-  @last_tasks = nil
-  begin
-    db = SQLite3::Database.open("tmp/tmp_tasklog.sqlite3")
-    @last_tasks = db.execute("select rowid,* from tasks order by rowid desc limit 6;")
-  ensure
-    db.close if db
-  end
-  f = tasks.waitany_nohang()
-  haml :process
+  TaskHgmd.run_sql("select * from tasks order by uuid desc limit 5")
+  .map{|e| e.inspect}.join("<br>")
 end
 
 get '/enqueue' do
   require "./task_hgmd"
-  TaskHgmd.spawn("sleep.sh" , settings.root)
+  pid = TaskHgmd.spawn("./etc/dummy.sh" , [], settings.root )
+  "#{pid.to_s}"
 end
 
 
@@ -122,13 +116,13 @@ def prepare_same_suffix(slide, checked)
 
   cmd = <<-EOS
   perl #{settings.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids}
-  EOS
+        EOS
   Dir.chdir(settings.storage_root){
     File.open("./#{slide}.tmplog___", 'w') {|f| f.write(cmd) }
     `#{cmd}`
   }
 
   require "./task_hgmd"
-  TaskHgmd.spawn("sleep.sh" , settings.root)
+  TaskHgmd.spawn("./etc/dummy.sh" , [], settings.root )
 
 end

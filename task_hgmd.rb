@@ -5,17 +5,21 @@ require 'yaml'
 module TaskHgmd
 
   @@db_file = YAML.load_file("config.yml")["db_file"]
-  
+  raise "db_dile entry not exists in config file" if @@db_file.nil?
+
   def self.open_db()
     puts @@db_file
     `mkdir -p tmp`
-    return SQLite3::Database.open(@@db_file)
+    db = SQLite3::Database.open(@@db_file)
+    db.busy_timeout 3000
+    return db
   end
 
-  def run_sql(sql)
+  def self.run_sql(sql)
     db = open_db
-    db.execute(sql)
+    ret = db.execute(sql)
     db.close
+    return ret
   end
 
   def self.init_db()
@@ -58,19 +62,22 @@ values( -1, \"NotDone\", \"#{uuid}\" )
     `cmd`
   end
 
-  def self.spawn(bashfile, dir, uuid = Time.now.strftime("%Y%m%d-%H_%M_%S%Z") + "--" + SecureRandom.uuid )
+  def self.spawn(bashfile,args = [], dir = Dir.pwd,
+   uuid = Time.now.strftime("%Y%m%d-%H_%M_%S%Z") + "--" + SecureRandom.uuid )
     init_db()
     add_task(uuid)
     # http://dba.stackexchange.com/questions/47919/how-do-i-specify-a-timeout-in-sqlite3-from-the-command-line
     bash_cmd = <<-EOS
-bash #{bashfile} || exit 1
+bash #{bashfile} #{ args.join(" ") } || exit 1
 sqlite3 -init ./etc/set_timeout.sql #{@@db_file} 'UPDATE tasks SET status = \"Done\" WHERE uuid = \"#{uuid}\" '
 exit 0
     EOS
+    `mkdir -p ./log/tasks`
     pid = Process.spawn( bash_cmd , :chdir => dir, :pgroup=>nil,
-      [:out,:err]=>[ File.join("./log", uuid ), "w"] )
+      [:out,:err]=>[ File.join("./log/tasks/", uuid ), "w+"] )
     set_pid(uuid, pid)
     Process.detach pid
+    return pid
   end
 
 end
