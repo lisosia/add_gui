@@ -115,6 +115,7 @@ def prepare_same_suffix(slide, checked)
     `#{cmd}`
   }
 
-  TaskHgmd.spawn("./etc/dummy.sh" , [slide, ids], settings.root )
+  # TaskHgmd.spawn("./etc/dummy.sh" , [slide, ids], settings.root )
+  TaskHgmd.spawn("./auto_run#{suffix}.sh" , [slide, ids], File.join(settings.storage_root, slide) )
 
 end
