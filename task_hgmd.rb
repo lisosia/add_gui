@@ -78,7 +78,7 @@ exit 0
     EOS
     `mkdir -p ./log/tasks`
     pid = Process.spawn( bash_cmd , :chdir => dir, :pgroup=>nil,
-      [:out,:err]=>[ File.join($SETTINGS.root,"log/tasks/", uuid ), "w+"] )
+      [:out,:err]=>[ File.join($SETTINGS.root,"log/tasks/", uuid ), "w"] )
     set_pid(uuid, pid)
     Process.detach pid
     return pid
