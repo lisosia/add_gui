@@ -33,9 +33,10 @@ my $SAMPLE_NAME="";
 my @RUN_NO=("PE001");
 
 sub get_sure_pos{ # TODO
-    my ($suf) = @_ || (undef);
+    my ($suf) = @_ ;
     return "/grid2/personal-genome/BED/S07604624_V6+UTR_Covered.bed" if ($suf eq '_SS6UTR');
     return "/grid2/personal-genome/BED/SureSelect_All_Exon_50mb_with_annotation_hg19_bed" if ($suf eq 'TruSeq');
+    # TODO , empty sure_pos would make error later?
     return '';
 }
 $SURE_POS = get_sure_pos($SUFFIX);
