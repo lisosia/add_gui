@@ -51,9 +51,10 @@ end
 get '/progress/:slide' do
   d = Dir.glob( File.join(settings.storage_root, params['slide'], "*" ) ).select{|f| File.directory? f}
   def cont(dr)
+    file = File.join dr, make.log.progress
     ret	= system("cat #{dr}/make.log.progress")		
-    if c  
-      c 
+    if File.exist? file 
+      `cat #{file}`
     else
       "not-exist" 
     end	
