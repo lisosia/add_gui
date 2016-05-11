@@ -50,7 +50,7 @@ end
 
 get '/progress/:slide' do
   d = Dir.glob( File.join(settings.storage_root, params['slide'], "*" ) )
-  show = dirs.map{|dr| [dr, system("cat #{dr}/make.log.progress") ] }
+  show = d.map{|dr| [dr, system("cat #{dr}/make.log.progress") ] }
   show.map{|f| f[0] + "; " + f[1] }.join("<br>")
 end
 
