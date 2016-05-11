@@ -49,8 +49,16 @@ get '/process' do
 end
 
 get '/progress/:slide' do
-  d = Dir.glob( File.join(settings.storage_root, params['slide'], "*" ) )
-  show = d.map{|dr| [dr, system("cat #{dr}/make.log.progress") ] }
+  d = Dir.glob( File.join(settings.storage_root, params['slide'], "*" ) ).select{|f| File.directory? f}
+  def cont(dr)
+    ret	= system("cat #{dr}/make.log.progress")		
+    if c  
+      c 
+    else
+      "not-exist" 
+    end	
+  end   
+  show = d.map{ |e|  [ e, cont(e) ] }  
   show.map{|f| f[0] + "; " + f[1] }.join("<br>")
 end
 
