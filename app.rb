@@ -49,8 +49,9 @@ get '/process' do
 end
 
 get '/progress/:slide' do
-  files = Dir.glob( File.join(settings.root, "sim/storage", params['slide'], "*" ) )
-  files.map{|f| f.to_s + " ___test"}.join("<br>")
+  d = Dir.glob( File.join(settings.storage_root, params['slide'], "*" ) )
+  show = dirs.map{|dr| [dr, system("cat #{dr}/make.log.progress") ] }
+  show.map{|f| f[0] + "; " + f[1] }.join("<br>")
 end
 
 get '/enqueue' do
