@@ -63,13 +63,6 @@ get '/progress/:slide' do
   show.map{|f| f[0] + "; " + f[1] }.join("<br>")
 end
 
-get '/enqueue' do
-  require "./task_hgmd"
-  pid = TaskHgmd.spawn("./etc/dummy.sh" , [], settings.root )
-  "task spawned, pid = #{pid.to_s}"
-end
-
-
 def dir_exists?(slide, library_id, prep_kit)
   raise "args include nil" if slide.nil? or library_id.nil?
   p = settings.storage_root + '/' + slide.to_s + '/' + library_id.to_s + get_suffix(prep_kit)
@@ -115,17 +108,17 @@ def prepare_same_suffix(slide, checked)
   suffix = get_suffix( prep_kits[0] )
 
   run_name = NGS::get_run_name(checked)
-  ids = checked.map{|r| r['library_id']}.join(',')
+  ids = checked.map{|r| r['library_id']}
 
   cmd = <<-EOS
-  perl #{settings.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids}
+  perl #{settings.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids.join(',')}
         EOS
   Dir.chdir(settings.storage_root){
     File.open("./#{slide}.tmplog___", 'w') {|f| f.write(cmd) }
     `#{cmd}`
   }
 
-  # TaskHgmd.spawn("./etc/dummy.sh" , [slide, ids], settings.root )
-  TaskHgmd.spawn("./auto_run#{suffix}.sh" , [slide, ids], File.join(settings.root,settings.storage_root, slide) )
+  # TaskHgmd.spawn("./etc/dummy.sh" , slide ,ids, settings.root )
+  TaskHgmd.spawn("./auto_run#{suffix}.sh" , slide, ids, File.join(settings.root,settings.storage_root, slide) )
 
 end

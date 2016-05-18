@@ -64,21 +64,28 @@ values( -1, \"NotDone\", '#{uuid}', '#{args.to_s}' )
     `cmd`
   end
 
-  def self.spawn(bashfile,args = [], dir = Dir.pwd,
-   uuid = Time.now.strftime("%Y%m%d-%H_%M_%S%Z") + "--" + SecureRandom.uuid )
+  def self.spawn(bashfile, slide, ids , dir, uuid = Time.now.strftime("%Y%m%d-%H_%M_%S%Z") + "--" + SecureRandom.uuid )
+
     init_db()
-    args_str = args.join(" ")
+    args_str = [slide ,ids.join(',')].join(" ")
     add_task(uuid, args_str)
     # http://dba.stackexchange.com/questions/47919/how-do-i-specify-a-timeout-in-sqlite3-from-the-command-line
     bash_cmd = <<-EOS
 set -xv
 bash #{bashfile} #{ args_str } #{bashfile}.out 2> #{bashfile}.err || exit 1
 sqlite3 -init ./etc/set_timeout.sql #{@@db_file} 'UPDATE tasks SET status = \"Done\" WHERE uuid = \"#{uuid}\" '
+ruby #{$SETTINGS.root}/calc_dup/check_result.rb #{ids.join(',')}
 exit 0
     EOS
+
     `mkdir -p ./log/tasks`
+    
+    File.open( File.join($SETTINGS.root, 'log/tasks/', "#{slide}__#{uuid}.bash") , 'w') do |f|
+      f.write bash_cmd
+    end
+
     pid = Process.spawn( bash_cmd , :chdir => dir, :pgroup=>nil,
-      [:out,:err]=>[ File.join($SETTINGS.root,"log/tasks/", uuid ), "w"] )
+                         [:out,:err]=>[ File.join($SETTINGS.root,"log/tasks/", "#{slide}__#{uuid}" ), "w"] )
     set_pid(uuid, pid)
     Process.detach pid
     return pid
