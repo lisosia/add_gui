@@ -29,14 +29,17 @@ indel = np.array(indel)
 X = np.arange( len(ss) )
 
 plt.subplot(311)
+plt.ylabel('depth')
 plt.bar(X, dep, align='center')
 plt.xticks(X, ss, rotation=90, fontsize='small')
 
 plt.subplot(312)
+plt.ylabel('duplication rate')
 plt.bar(X, dup, align='center')
 plt.xticks(X, ss, rotation=90, fontsize='small')
 
 plt.subplot(313)
+plt.ylabel('# of rare variants')
 w = 0.4
 plt.bar(X, snv, width=w ,color='b' ,align='center')
 plt.bar(X + w , indel, width=w ,color='r',align='center')
