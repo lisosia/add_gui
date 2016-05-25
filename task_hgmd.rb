@@ -74,7 +74,7 @@ values( -1, \"NotDone\", '#{uuid}', '#{args.to_s}' )
 set -xv
 bash #{bashfile} #{ args_str } #{bashfile}.out 2> #{bashfile}.err || exit 1
 sqlite3 -init ./etc/set_timeout.sql #{@@db_file} 'UPDATE tasks SET status = \"Done\" WHERE uuid = \"#{uuid}\" '
-ruby #{$SETTINGS.root}/calc_dup/check_result.rb #{ids.join(',')}
+# ruby #{$SETTINGS.root}/calc_dup/check_results.rb #{ids.join(',')}
 exit 0
     EOS
 

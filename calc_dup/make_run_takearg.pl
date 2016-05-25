@@ -5,11 +5,12 @@ use File::Basename;
 use Getopt::Long;
 
 #get args
-my ($LIBID_LIST_RAW, $RUN, $RUN_NAME, $SUFFIX) = (undef,undef,undef,undef);
+my ($LIBID_LIST_RAW, $RUN, $RUN_NAME, $SUFFIX, $STORAGE) = (undef,undef,undef,undef, undef);
 GetOptions ("library-ids=s" => \$LIBID_LIST_RAW , # 7308_1, 7308_2, ,,,
 "run=s" => \$RUN , # slide
 "run-name=s" => \$RUN_NAME, # run_name ex. 372813_sn38210_asdh3219sada
-"suffix=s" => \$SUFFIX); # ex. _SS6UTR 
+"suffix=s" => \$SUFFIX,
+"storage=s" => \$STORAGE); # ex. _SS6UTR 
 
 #suffix is not always same in one slide($RUN in this script)
 #but this perl-script would be called with args of[ samples with same prep_kit/suffix ] 
@@ -196,7 +197,7 @@ foreach my $SAMPLE (@LIBID_LIST){ # START of each sample loop
 my $RUN_SCRIPT="$RUN/auto_run$SUFFIX.sh";
 open(OUT,">$RUN_SCRIPT") || die "Cannot create $RUN_SCRIPT";
 #todo ; first line slightly danger
-print OUT "BASE_DIR=.
+print OUT "BASE_DIR=$STORAGE
 for DIR in $SAMPLE_NAME
 do
 echo \$DIR\n";

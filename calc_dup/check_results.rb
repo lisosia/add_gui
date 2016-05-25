@@ -6,7 +6,7 @@ for s in samples do
   no = s.split('_')[0] # 7244, 7245, etc
 
   unless Dir.exist? s
-    puts WARNING "not-exist directory given : [#{s}]"
+    puts "WARNING not-exist directory given : [#{s}]"
     next
   end
 

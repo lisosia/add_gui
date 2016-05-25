@@ -25,11 +25,11 @@ get '/' do
 end
 
 post '/' do
-  mylog.info 'post / called'
   slide = @params[:slide]
   return "empty post; please return to previous page" if @params[:check].nil? 
   rows = @table.select{|r| r['slide'] == slide}
   library_ids_checked = params[:check].map{ |lib_id| @table.select{|r| r['library_id'] == lib_id}[0] }
+  mylog.info 'post / called. slide=#{slide}; checked_ids=#{library_ids_checked}'
   raise "internal eoor; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
   prepare(slide, library_ids_checked )
   redirect to('/')
@@ -111,7 +111,7 @@ def prepare_same_suffix(slide, checked)
   ids = checked.map{|r| r['library_id']}
 
   cmd = <<-EOS
-  perl #{settings.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids.join(',')}
+  perl #{settings.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids.join(',')} --storage #{settings.storage_root}
         EOS
   Dir.chdir(settings.storage_root){
     File.open("./#{slide}.tmplog___", 'w') {|f| f.write(cmd) }
