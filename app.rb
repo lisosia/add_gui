@@ -7,6 +7,7 @@ require "./init.rb"
 include MyLog
 
 rack_logger = Logger.new('./log/app.log')
+
 configure do
   use Rack::CommonLogger, rack_logger
 end
@@ -40,6 +41,15 @@ get '/all' do
   haml :table
 end
 
+get '/graph/:slide' do
+  slide = @params[:slide]
+  system <<EOS
+mkdir -p #{settings.root}/public/graph
+cd #{settings.root}/public/graph && cat #{settings.storage_root}/#{slide}/check_results.log | python #{settings.root}/etc/mk_graph/mk_graph.py
+mv tmp.png #{settings.root}/public/graph/#{slide}.png
+EOS
+  haml :graph , :locals => {:slide => "#{slide}"}
+end
 
 get '/process' do
   tasks = TaskHgmd.run_sql("select pid,status,args,uuid from tasks order by uuid desc limit 5")
@@ -52,15 +62,32 @@ get '/progress/:slide' do
   d = Dir.glob( File.join(settings.storage_root, params['slide'], "*" ) ).select{|f| File.directory? f}
   def cont(dr)
     file = File.join dr,"make.log.progress"
-    ret	= system("cat #{dr}/make.log.progress")		
     if File.exist? file 
       `cat #{file}`
     else
-      "not-exist" 
+      "! file-not-exist" 
     end	
-  end   
-  show = d.map{ |e|  [ e, cont(e) ] }  
-  show.map{|f| f[0] + "; " + f[1] }.join("<br>")
+  end
+
+  show = d.map{ |e|  [ e, cont(e) ] }
+  progresses = show.map{|f| f[0] + "; " + f[1] }.join("<br>")
+  
+  def check_results(slide)
+    file = File.join settings.storage_root, slide, "check_results.log"
+    if File.exist? file
+      `cat #{file} | grep "WARNING"`
+    else
+      "! file-not-exists"
+    end
+
+    
+  end
+
+  "check_results 's WARNING(s)<BR/>
+#{check_results( @params[:slide] )}
+<BR/><BR/>
+#{progresses}
+"
 end
 
 def dir_exists?(slide, library_id, prep_kit)
@@ -109,16 +136,18 @@ def prepare_same_suffix(slide, checked)
 
   run_name = NGS::get_run_name(checked)
   ids = checked.map{|r| r['library_id']}
+  storage = File.join( settings.storage_root, slide)
 
   cmd = <<-EOS
-  perl #{settings.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids.join(',')} --storage #{settings.storage_root}
+  perl #{settings.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids.join(',')} --storage #{storage}
         EOS
+  
   Dir.chdir(settings.storage_root){
     File.open("./#{slide}.tmplog___", 'w') {|f| f.write(cmd) }
     `#{cmd}`
   }
 
   # TaskHgmd.spawn("./etc/dummy.sh" , slide ,ids, settings.root )
-  TaskHgmd.spawn("./auto_run#{suffix}.sh" , slide, ids, File.join(settings.root,settings.storage_root, slide) )
+  TaskHgmd.spawn("./auto_run#{suffix}.sh" , slide, ids, storage)
 
 end

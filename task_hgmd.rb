@@ -84,6 +84,7 @@ exit 0
       f.write bash_cmd
     end
 
+    `mkdir #{dir}`
     pid = Process.spawn( bash_cmd , :chdir => dir, :pgroup=>nil,
                          [:out,:err]=>[ File.join($SETTINGS.root,"log/tasks/", "#{slide}__#{uuid}" ), "w"] )
     set_pid(uuid, pid)
