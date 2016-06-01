@@ -1,8 +1,8 @@
 :javascript
-  function toggleBox(b, form, v){
-    var form = document.forms[form];
-    for(var i=0;i < form.length; i++){
-      form.elements[i].checked = v;
+  function toggleBox(form, v){
+    var f = document.forms[form];
+    for(var i=0;i < f.length; i++){
+      f.elements[i].checked = v;
     }
   }
 
@@ -10,11 +10,11 @@
 
 - for slide,rows in @table.group_by{|r| r.values_at('slide').first}
   %p= "slide ===#{slide}==="
-  %form(action="/" method="post" name="#{slide}")
+  %form(action="/" method="post" name="form-#{slide}")
     %input(type="hidden" name="slide" value="#{slide}")
     %input(type="submit" value="Send  slide:#{slide}" class="button")
-    %input(type="button" value='selectAll' onclick="toggleBox(true, '#{slide}', 'checked') " )
-    %input(type="button" value='selectNone' onclick="toggleBox(true, '#{slide}', '')" )    
+    %input(type="button" value='selectAll' onclick="toggleBox(  'form-#{slide}', 'checked') " )
+    %input(type="button" value='selectNone' onclick="toggleBox( 'form-#{slide}', '')" )    
 
     %table(border="1")
       %thread
