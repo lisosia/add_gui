@@ -14,6 +14,7 @@ module NGS
     forwarding_headers = [0,1,2]
     last_headers = table.first.values_at(* forwarding_headers)
     table.each do |r|
+      r[0] = r[0].gsub(/\s+/, "") unless r[0].nil? # some slide colum values contain white space
       if HEADERS.size != r.size
         raise "NGS csv file format error: incorrect col size(#{r.size}) VS specified(#{Headers.size});" + "\n" + r.inspect()
       end
