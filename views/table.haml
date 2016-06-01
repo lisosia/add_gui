@@ -1,7 +1,7 @@
 %h1 views/table.haml
 
 - for slide,rows in @table.group_by{|r| r.values_at('slide').first}
-  %p ===================================
+  %p= "slide ===#{slide}==="
   %form(action="/" method="post")
     %input(type="hidden" name="slide" value="#{slide}")
     %input(type="submit" value="Send  slide:#{slide}" class="button")

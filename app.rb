@@ -43,12 +43,28 @@ end
 
 get '/graph/:slide' do
   slide = @params[:slide]
+  unless File.exist? "#{settings.root}/public/graph/#{slide}.png"
+    mk_graph(slide)
+  end
+  haml :graph , :locals => {:slide => "#{slide}"}
+end
+
+post '/graph/:slide' do
+  slide = @params[:slide]
+  mk_graph(slide)
+end
+
+def mk_graph(slide)
+  if slide.include? '/'
+    mylog.warn "invalud reqest slide=[#{slide}]"
+    return
+  end
   system <<EOS
 mkdir -p #{settings.root}/public/graph
 cd #{settings.root}/public/graph && cat #{settings.storage_root}/#{slide}/check_results.log | python #{settings.root}/etc/mk_graph/mk_graph.py
 mv tmp.png #{settings.root}/public/graph/#{slide}.png
 EOS
-  haml :graph , :locals => {:slide => "#{slide}"}
+  redirect to "/graph/#{slide}"
 end
 
 get '/process' do
