@@ -6,13 +6,23 @@
     }
   }
 
+:javascript
+  function submitCheck(){
+    if(window.confirm( 'launch task? (links appear on the right of the send-button if task was launched before)' )){
+      return true;
+    }else{
+      window.alert('cancelled');
+      return false;
+    }
+  }
+
 %h1 table
 
 %a(href = "/process") processes
 
 - for slide,rows in @table.group_by{|r| r.values_at('slide').first}
   %p= "slide ===#{slide}==="
-  %form(action="/" method="post" name="form-#{slide}")
+  %form(action="/" method="post" name="form-#{slide}" onSubmit="return submitCheck()")
     %input(type="hidden" name="slide" value="#{slide}")
     %input(type="submit" value="Send  slide:#{slide}" class="button")
     %input(type="button" value='selectAll' onclick="toggleBox(  'form-#{slide}', 'checked') " )
