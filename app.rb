@@ -20,6 +20,7 @@ before do
   @show_headers = ['slide', 'run_name', 'application', 'library_id']
 end
 
+
 get '/' do
   @show_headers = ['slide', 'run_name', 'application', 'library_id', 'prep_kit']
   haml :table, :locals => {:check_dir => @params[:check_dir]}
@@ -104,6 +105,12 @@ get '/progress/:slide' do
 <BR/><BR/>
 #{progresses}
 "
+end
+
+def dir_slide_exist?(slide)
+  slide = slide.to_s
+  raise 'invalid arg' if slide == ''
+  return File.directory? File.join(settings.storage_root, slide)
 end
 
 def dir_exists?(slide, library_id, prep_kit)

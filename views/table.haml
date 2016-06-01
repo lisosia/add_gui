@@ -8,6 +8,8 @@
 
 %h1 table
 
+%a(href = "/process") processes
+
 - for slide,rows in @table.group_by{|r| r.values_at('slide').first}
   %p= "slide ===#{slide}==="
   %form(action="/" method="post" name="form-#{slide}")
@@ -15,6 +17,10 @@
     %input(type="submit" value="Send  slide:#{slide}" class="button")
     %input(type="button" value='selectAll' onclick="toggleBox(  'form-#{slide}', 'checked') " )
     %input(type="button" value='selectNone' onclick="toggleBox( 'form-#{slide}', '')" )    
+    
+    -if dir_slide_exist? slide
+      %a(href = "/progress/#{slide}") progress(slide's directory exist)
+      %a(href = "/graph/#{slide}") graph(if work done)
 
     %table(border="1")
       %thread
