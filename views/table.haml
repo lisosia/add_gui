@@ -18,9 +18,15 @@
 
 %h1 table
 
+- for i in 0.upto NGS::int_slides(@table).max / 50
+  <a href="?range=#{ (i*50+1).to_s + '-' + ((i+1)*50).to_s }" >#{(i*50+1).to_s + '-' + ((i+1)*50).to_s}</a> 
+
+<br><br>
+
 %a(href = "/process") processes
 
-- for slide,rows in @table.group_by{|r| r.values_at('slide').first}
+-# select 'no-int-slide' or int-slides in specified range
+- for slide,rows in @filtered_table
   %p= "slide ===#{slide}==="
   %form(action="/" method="post" name="form-#{slide}" onSubmit="return submitCheck()")
     %input(type="hidden" name="slide" value="#{slide}")
@@ -49,3 +55,7 @@
               %td
                 #exist= dir_exists?(slide, lib_id, row.values_at('prep_lit') ) 
                 
+
+-# paging links on top and bottom
+- for i in 0.upto NGS::int_slides(@table).max / 50
+  <a href="?range=#{ (i*50+1).to_s + '-' + ((i+1)*50).to_s }" >#{(i*50+1).to_s + '-' + ((i+1)*50).to_s}</a> 

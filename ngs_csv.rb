@@ -14,7 +14,7 @@ module NGS
     forwarding_headers = [0,1,2]
     last_headers = table.first.values_at(* forwarding_headers)
     table.each do |r|
-      r[0] = r[0].gsub(/\s+/, "") unless r[0].nil? # some slide colum values contain white space
+      r[0] = r[0].gsub(/\s+/, "").chomp unless r[0].nil? # some slide colum values contain white space
       if HEADERS.size != r.size
         raise "NGS csv file format error: incorrect col size(#{r.size}) VS specified(#{Headers.size});" + "\n" + r.inspect()
       end
@@ -29,6 +29,11 @@ module NGS
     #the first line is the header, not used since i manually specified
     table.delete(0)  
     return table
+  end
+  
+  # return int-slides
+  def self.int_slides(table)
+    table.map{|r| r.values_at('slide').first}.uniq.select{ |s| /\A[0-9]+\z/ === s }.map(&:to_i)
   end
 
   def self.col(headername)
