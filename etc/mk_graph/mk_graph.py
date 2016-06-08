@@ -34,19 +34,19 @@ plt.subplot(311)
 plt.ylabel('depth')
 plt.bar(X, dep, align='center')
 plt.xticks(X, ss, rotation=90, fontsize='small')
-plt.yticks( np.arange(0, max(dep)+20  ,10) , fontsize='small')
+plt.yticks( np.arange(0, max(dep)+30  ,10) , fontsize='small')
 plt.gca().yaxis.grid(True)
 for x,y in zip(X, dep):
-    plt.text(x,y+3,int(round(y)), ha='center', va='bottom')
+    plt.text(x,y+3,int(round(y)), ha='center', va='bottom', fontsize='x-small')
 
 plt.subplot(312)
 plt.ylabel('duplication rate')
 plt.bar(X, dup, align='center')
 plt.xticks(X, ss, rotation=90, fontsize='small')
-plt.yticks( np.arange(0, max(dup) +2 ,1) , fontsize='small')
+plt.yticks( np.arange(0, max(dup) +3 ,1) , fontsize='small')
 plt.gca().yaxis.grid(True)
 for x,y in zip(X, dup):
-    plt.text(x,y+0.5,int(round(y)), ha='center', va='bottom')
+    plt.text(x,y+0.5,int(round(y)), ha='center', va='bottom', fontsize='small')
 
 plt.subplot(313)
 plt.ylabel('# of rare variants')

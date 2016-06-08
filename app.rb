@@ -53,6 +53,7 @@ end
 post '/graph/:slide' do
   slide = @params[:slide]
   mk_graph(slide)
+  redirect to("/graph/#{slide}")
 end
 
 def mk_graph(slide)
