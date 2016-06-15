@@ -27,8 +27,10 @@ for chr in {1..22} X Y;do
    fi
 done
 
-cat $SAMPLE/stat/map/*.Nmap | perl /work/yoshimura/tools/calc_map_rate.pl
-cat $SAMPLE/stat/dup/dup.stat | perl /work/yoshimura/tools/calc_dup.pl
+file_dir=$(dirname $(readlink -f f$0) )
+
+cat $SAMPLE/stat/map/*.Nmap | perl $file_dir/calc_map_rate.pl
+cat $SAMPLE/stat/dup/dup.stat | perl $file_dir/calc_dup.pl
 cat $SAMPLE/stat/snv/*.stats | perl -pwe "s/\t/,/g"
 else
     echo $NO is not found!!

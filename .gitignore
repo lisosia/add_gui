@@ -38,3 +38,4 @@ Gemfile.lock
 ###private
 config.yml
 log/
+sim/

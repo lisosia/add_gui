@@ -148,7 +148,8 @@ def get_suffix(prep_kit)
   when /^TruSeq DNA PCR-Free Sample Prep Kit/ then return '_WG'
   else
     STDERR.puts "WARNING Uninitilalized value; #{prep_kit}"
-    return '___NONE___'
+    return ''
+    throw StandardException.new('')
   end  
 end
 
@@ -175,7 +176,7 @@ def prepare_same_suffix(slide, checked)
   storage = File.join( settings.storage_root, slide)
 
   cmd = <<-EOS
-  perl #{settings.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids.join(',')} --storage #{storage}
+  perl #{settings.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids.join(',')} --storage #{storage} --path-check-result #{settings.root}/calc_dup/check_results.sh --path-makefile #{settings.makefile_path}
         EOS
   
   Dir.chdir(settings.storage_root){

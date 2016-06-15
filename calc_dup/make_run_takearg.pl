@@ -5,12 +5,14 @@ use File::Basename;
 use Getopt::Long;
 
 #get args
-my ($LIBID_LIST_RAW, $RUN, $RUN_NAME, $SUFFIX, $STORAGE) = (undef,undef,undef,undef, undef);
+my ($LIBID_LIST_RAW, $RUN, $RUN_NAME, $SUFFIX, $STORAGE, $PATH_CHECK, $PATH_MAKEFILE) = (undef,undef,undef,undef, undef. undef,undef);
 GetOptions ("library-ids=s" => \$LIBID_LIST_RAW , # 7308_1, 7308_2, ,,,
 "run=s" => \$RUN , # slide
 "run-name=s" => \$RUN_NAME, # run_name ex. 372813_sn38210_asdh3219sada
-"suffix=s" => \$SUFFIX,
-"storage=s" => \$STORAGE); # ex. _SS6UTR 
+"suffix=s" => \$SUFFIX, # example. _SS6UTR,_SS5UTR, ... 
+"storage=s" => \$STORAGE,
+"path-check-result=s" => \$PATH_CHECK,
+"path-makefile=s" => \$PATH_MAKEFILE ); 
 
 #suffix is not always same in one slide($RUN in this script)
 #but this perl-script would be called with args of[ samples with same prep_kit/suffix ] 
@@ -183,7 +185,7 @@ foreach my $SAMPLE (@LIBID_LIST){ # START of each sample loop
         my $RUN_FILE="$RUN/$SAMPLE/run.sh";
         open(OUT,">$RUN_FILE") || die "Error\n";
         
-        print OUT "gxpc make -k -j $thread -f /nfs/6/personal-genome/makefiles/makefile_md5.nfs ";
+        print OUT "gxpc make -k -j $thread -f $PATH_MAKEFILE ";
         print OUT "SAMPLE=$SAMPLE PE_READS=\"$FASTQ_PE\" SE_READS=\"$FASTQ_SE\" ";
         print OUT "SURE_POS=$SURE_POS";
         print OUT " TARGET=genome" if($GENOME_FLAG);
@@ -204,7 +206,7 @@ echo \$DIR\n";
 
 if(!$RNA_FLAG){
     print OUT "\tcd \$BASE_DIR/\$DIR && date >> make.log && (time sh run.sh) >> make.log 2>> make.log\n";
-    print OUT "\tcd \$BASE_DIR/ && sh /work/yoshimura/tools/check_results.sh \$DIR >> check_results.log 2>> check_results.log\n";
+    print OUT "\tcd \$BASE_DIR/ && sh $PATH_CHECK \$DIR >> check_results.log 2>> check_results.log\n";
 }
 else{
     print OUT "\tqsub -N RNA-\$DIR -o \$DIR/make.log -j y /work/HiSeq2000/BaseCall/qsub_rna.sh \$DIRn";
