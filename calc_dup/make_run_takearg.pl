@@ -40,7 +40,7 @@ sub get_sure_pos{ # TODO
     return "/grid2/personal-genome/BED/S07604624_V6+UTR_Covered.bed" if ($suf eq '_SS6UTR');
     # not used ?
     # return "/grid2/personal-genome/BED/SureSelect_All_Exon_50mb_with_annotation_hg19_bed" if ($suf eq 'TruSeq');
-    return "/grid2/personal-genome/BED/TruSeq-Exome-Targeted-Regions-BED-file" if ($suf eq 'TruSeq');
+    return "/grid2/personal-genome/BED/TruSeq-Exome-Targeted-Regions-BED-file" if ($suf eq '_TruSeq');
     return "/grid2/personal-genome/BED/SureSelect_All_Exon_V4+UTRs_hg19.bed" if ($suf eq '_SS4UTR');
     return "/grid2/personal-genome/BED/S04380219_V5_Core+UTR_Fragments.bed" if ($suf eq '_SS5UTR');
     return "" if ($suf eq '_Amplicon');

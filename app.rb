@@ -45,7 +45,16 @@ post '/' do
   library_ids_checked = params[:check].map{ |lib_id| @table.select{|r| r['library_id'] == lib_id}[0] }
   mylog.info 'post / called. slide=#{slide}; checked_ids=#{library_ids_checked}'
   raise "internal eoor; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
+  
+  ok, prepkit = validate_prepkit( library_ids_checked )
+  unless ok
+    return haml( :error, :locals => { :unknown_prepkit => prepkit } )
+  end
+
+
   prepare(slide, library_ids_checked )
+
+
   redirect to('/')
 end
 
@@ -133,9 +142,34 @@ def dir_exists?(slide, library_id, prep_kit)
   File.exists? p
 end
 
+class UnknownPrepkitError < StandardError
+  attr_reader :prepkit
+  def initialize(prepkit)
+    @message = prepkit
+  end  
+end
+
+module Prepkit
+  @@loaded = YAML.load_file('./config.yml')['prepkit_info']
+  @@data = []
+  for arr in @@loaded # arr == [regex, suffix, surepos_filepath]
+    @@data << [ Regexp.new(arr[0]), arr[1], arr[2] ]
+  end
+
+  def self.get( prepkit )
+    for arr in @@data
+      return [ arr[1], arr[2] ] if arr[0] === prepkit
+    end
+    return  nil
+  end
+
+end
+
+mylog.warn Prepkit::get('Agilent SureSelect v6+UTR')
+
 def get_suffix(prep_kit)
   case prep_kit
-  when /^N.A./ then return ''
+  # when /^N.A./ then return ''
   when /^Illumina TruSeq/ then return '_TruSeq'
   when /^Agilent SureSelect custom 0.5Mb/ then return '_SSc0_5Mb'
   when /^Agilent SureSelect custom 50Mb/ then return '_SS50Mb'
@@ -148,9 +182,17 @@ def get_suffix(prep_kit)
   when /^TruSeq DNA PCR-Free Sample Prep Kit/ then return '_WG'
   else
     STDERR.puts "WARNING Uninitilalized value; #{prep_kit}"
-    return ''
-    throw StandardException.new('')
+    return [nil,  prep_kit ]
   end  
+end
+
+# to avoid uncaught throw <- cannot catch error over threads
+def validate_prepkit(checked)
+  checked.group_by{|r| r['prep_kit']}.each do |prep, row| 
+    ok, info = get_suffix( prep )
+    return [false, prep ] unless ok
+  end
+  return true
 end
 
 # - checked - Array of CSV::Row
