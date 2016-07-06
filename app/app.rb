@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
+
 require 'sinatra'
 require 'sinatra/reloader'
 require 'sinatra/config_file'
 
-require "./init.rb"
+set :root, File.expand_path( '../../.', __FILE__)
+
+$LOAD_PATH.push( File.dirname(__FILE__) )
+require 'myconfig'
+$SETTINGS = MyConfig.new( './config.yml' )
+require "init.rb"
 include MyLog
 
 rack_logger = Logger.new('./log/app.log')
@@ -13,10 +19,10 @@ configure do
 end
 
 before do
-  unless File.exists? settings.storage_root
+  unless File.exists? $SETTINGS.storage_root
     raise "invalid storage_root path<#{settings.storage_root}> specified in configfile<#{config_file_path}>"
   end
-  @table = NGS::readCSV( settings.ngs_file )
+  @table = NGS::readCSV( $SETTINGS.ngs_file )
   @show_headers = ['slide', 'run_name', 'application', 'library_id']
 end
 
@@ -65,7 +71,7 @@ end
 
 get '/graph/:slide' do
   slide = @params[:slide]
-  unless File.exist? "#{settings.root}/public/graph/#{slide}.png"
+  unless File.exist? "#{$SETTINGS.root}/public/graph/#{slide}.png"
     mk_graph(slide)
   end
   haml :graph , :locals => {:slide => "#{slide}"}
@@ -83,9 +89,9 @@ def mk_graph(slide)
     return
   end
   system <<EOS
-mkdir -p #{settings.root}/public/graph
-cd #{settings.root}/public/graph && cat #{settings.storage_root}/#{slide}/check_results.log | python #{settings.root}/etc/mk_graph/mk_graph.py
-mv tmp.png #{settings.root}/public/graph/#{slide}.png
+mkdir -p #{$SETTINGS.root}/public/graph
+cd #{$SETTINGS.root}/public/graph && cat #{$SETTINGS.storage_root}/#{slide}/check_results.log | python #{$SETTINGS.root}/etc/mk_graph/mk_graph.py
+mv tmp.png #{$SETTINGS.root}/public/graph/#{slide}.png
 EOS
   redirect to "/graph/#{slide}"
 end
@@ -98,7 +104,7 @@ get '/process' do
 end
 
 get '/progress/:slide' do
-  d = Dir.glob( File.join(settings.storage_root, params['slide'], "*" ) ).select{|f| File.directory? f}
+  d = Dir.glob( File.join($SETTINGS.storage_root, params['slide'], "*" ) ).select{|f| File.directory? f}
   def cont(dr)
     file = File.join dr,"make.log.progress"
     if File.exist? file 
@@ -112,7 +118,7 @@ get '/progress/:slide' do
   progresses = show.map{|f| f[0] + "; " + f[1] }.join("<br>")
   
   def check_results(slide)
-    file = File.join settings.storage_root, slide, "check_results.log"
+    file = File.join $SETTINGS.storage_root, slide, "check_results.log"
     if File.exist? file
       `cat #{file} | grep "WARNING"`
     else
@@ -132,12 +138,12 @@ end
 def dir_slide_exist?(slide)
   slide = slide.to_s
   raise 'invalid arg' if slide == ''
-  return File.directory? File.join(settings.storage_root, slide)
+  return File.directory? File.join($SETTINGS.storage_root, slide)
 end
 
 def dir_exists?(slide, library_id, prep_kit)
   raise "args include nil" if slide.nil? or library_id.nil?
-  p = settings.storage_root + '/' + slide.to_s + '/' + library_id.to_s + get_suffix(prep_kit)
+  p = $SETTINGS.storage_root + '/' + slide.to_s + '/' + library_id.to_s + get_suffix(prep_kit)
   #return p
   File.exists? p
 end
@@ -215,18 +221,18 @@ def prepare_same_suffix(slide, checked)
 
   run_name = NGS::get_run_name(checked)
   ids = checked.map{|r| r['library_id']}
-  storage = File.join( settings.storage_root, slide)
+  storage = File.join( $SETTINGS.storage_root, slide)
 
   cmd = <<-EOS
-  perl #{settings.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids.join(',')} --storage #{storage} --path-check-result #{settings.root}/calc_dup/check_results.sh --path-makefile #{settings.makefile_path}
+  perl #{$SETTINGS.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids.join(',')} --storage #{storage} --path-check-result #{$SETTINGS.root}/calc_dup/check_results.sh --path-makefile #{$SETTINGS.makefile_path}
         EOS
   
-  Dir.chdir(settings.storage_root){
+  Dir.chdir($SETTINGS.storage_root){
     File.open("./#{slide}.tmplog___", 'w') {|f| f.write(cmd) }
     `#{cmd}`
   }
 
-  # TaskHgmd.spawn("./etc/dummy.sh" , slide ,ids, settings.root )
+  # TaskHgmd.spawn("./etc/dummy.sh" , slide ,ids, $SETTINGS.root )
   TaskHgmd.spawn("./auto_run#{suffix}.sh" , slide, ids, storage)
 
 end

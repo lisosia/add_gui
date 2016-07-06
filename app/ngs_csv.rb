@@ -59,7 +59,7 @@ module NGS
 end
     
 if __FILE__ == $0
-  ngs = NGS.readCSV("./tmp/NGS_sample1")
+  ngs = NGS.readCSV("../tmp/NGS_sample1")
   puts "header =", ngs.headers.inspect
   puts "inspect =" , ngs.inspect
 end

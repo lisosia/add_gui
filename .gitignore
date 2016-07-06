@@ -39,3 +39,7 @@ Gemfile.lock
 config.yml
 log/
 sim/
+inner_files/
+public/
+
+etc/mk_graph/check_results.log
