@@ -27,7 +27,7 @@ opt.on( '--run V', String ){|v| OPT[:run] = v } # slide ex. 256
 opt.on( '--run-name V', String ){|v| OPT[:run_name] = v } # ex. 372813_sb38310_dsa23131sda
 opt.on( '--suffix V' ){|v| OPT[:suffix] = v } # ex. SS5UTR
 opt.on( '--storage V' ){|v| OPT[:storage] = v } # path
-opt.on( '--path-check_result V' ){|v| OPT[:path_check] = v } # needed?
+opt.on( '--path-check-result V' ){|v| OPT[:path_check] = v } # needed?
 opt.on( '--path-makefile V' ){|v| OPT[:path_makefile] = v } # path
 
 opt.parse!(ARGV)
@@ -38,7 +38,7 @@ for req in [:libids_raw, :run, :run_name, :suffix, :storage, :path_check, :path_
 end
 
 run = OPT[:run]
-suffix = OPT[:suffx]
+suffix = OPT[:suffix]
 libid_list = OPT[:libids_raw].split(/,/)
 path_makefile = OPT[:path_makefile]
 RUN_DIR = [ "/data/HiSeq2000/$RUN_NAME/Unaligned/" ]
@@ -46,7 +46,7 @@ PREFIX = 'Project_'
 sample_names = ''
 RUN_NO=['PE001']
 sure_pos = get_sure_pos( OPT[:suffix] )
-rna_flag = (suffix == '_RNA')? 1 : 0
+rna_flag = (suffix == '_RNA')? true : false
 
 
 ###############
@@ -56,14 +56,15 @@ for sample in libid_list
   puts "SAMPLE: #{run}/#{sample}#{suffix}"
   sample_names += " #{sample}#{suffix}"
   
-  genome_flag , genome = 0, 'exome'
-  genome_flag , genome = 1, 'genome' if suffix == '_WG'
+  genome_flag , genome = false, 'exome'
+  genome_flag , genome = true, 'genome' if suffix == '_WG'
   genome = 'rna' if rna_flag
 
   RUN_PE , RUN_DIR_PE = [] , []
   RUN_SE , RUN_DIR_SE = [] , []
   
-  run_dir.each_with_index do |dir, i|
+  ############### loop to push elements to RUN[_DIR]_[PS]E
+  RUN_DIR.each_with_index do |dir, i|
     for direc in Dir.glob( File.join( dir, "#{PREFIX}#{sample}*#{suffix}", "Sample_#{sample}*" ) )
       direc.chomp!
       unless Dir.exists? direc
@@ -131,7 +132,7 @@ for sample in libid_list
   fastq_se = fastq_se.join(" ")
 
   ############### make run.sh
-  if rna_flag
+  if ! rna_flag
     thread = `gxpc e hostname | wc -l`.gsub(/\n/, '')
     run_file = File.join( run, sample, 'run.sh' )
     File.open(run_file, "w+") do |f|
@@ -151,16 +152,16 @@ end ########## END OF MAIN LOOP ; for sample in libids
 
 ########## make run script <auto_run_SUFFIX.sh>
 
-RUN_SCRIPT = Filie.join( run, "auto_run#{suffix}.sh" )
+RUN_SCRIPT = File.join( run, "auto_run#{suffix}.sh" )
 File.open( RUN_SCRIPT, 'w+' ) do |f|
   f.write <<EOS
 BASE_DIR=#{OPT[:storage]}
-for DIR in #{ libid_list.map{|s| s + suffix}.jooin(" ") }
+for DIR in #{ libid_list.map{|s| s + suffix}.join(" ") }
 do
 echo $DIR
 EOS
 
-  if rna_flag
+  if ! rna_flag
     f.write <<EOS
 \tcd $BASE_DIR/$DIR && date >> make.log && (time sh run.sh) >> make.log 2>> make.log
 \tcd $BASE_DIR/ && sh #{OPT[:path_check]} $DIR >> check_results.log 2>> check_results.log

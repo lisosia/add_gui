@@ -224,7 +224,7 @@ def prepare_same_suffix(slide, checked)
   storage = File.join( $SETTINGS.storage_root, slide)
 
   cmd = <<-EOS
-  perl #{$SETTINGS.root}/calc_dup/make_run_takearg.pl --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids.join(',')} --storage #{storage} --path-check-result #{$SETTINGS.root}/calc_dup/check_results.sh --path-makefile #{$SETTINGS.makefile_path}
+  ruby #{$SETTINGS.root}/calc_dup/make_run.rb --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids.join(',')} --storage #{storage} --path-check-result #{$SETTINGS.root}/calc_dup/check_results.sh --path-makefile #{$SETTINGS.makefile_path}
         EOS
   
   Dir.chdir($SETTINGS.storage_root){
