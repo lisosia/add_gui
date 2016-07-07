@@ -1,22 +1,8 @@
 #!/bio/bin/ruby
 
 require 'yaml'
-
-# $conf = [ [suffix1, target_bases1], [suffix2, target_bases2], ...  ]
-$conf = YAML.load_file( File.join( File.dirname(__FILE__) , '../config.yml' ) )['prepkit_info']
-  .map{|arr| [ arr[1], arr[3] ] }
-  .select{|suf, target| target != ''  }
-  .map{|sux, target| [ sux, target.to_i ] }
-
-def suffix2targetbases(suffix)
-  ret = $conf.select{|suf, target| suffix.match /#{suf}/ }
-  if ret.length != 0
-    return ret.first[1]
-  else
-    return nil
-  end
-end
-
+require_relative '../app/prepkit.rb'
+PREP = Prepkit.new()
 
 name = nil
 n_reads = map_reads = unq_reads = map_bases = unq_bases = 0
@@ -35,7 +21,7 @@ end
 path = name.split(/\//)
 sample = path[2].split(/\./)
 
-target_bases = suffix2targetbases( sample[0] ) || 3095677412
+target_bases = PREP.suffix2targetbases( sample[0] ) || 3095677412
 
 # Sample,#Reads,#Mapped Reads,#Mappe Reads (Unique),Mapping Rate (%),Mapping Rate (Unique) (%),Coverage (x),Coverage (Unique) (x)
 puts "#{sample[0]},#{n_reads},#{map_reads},#{unq_reads},#{ map_reads.to_f / n_reads * 100 },#{ unq_reads.to_f / n_reads * 100 },#{ map_bases.to_f / target_bases },#{ unq_bases.to_f / target_bases }"

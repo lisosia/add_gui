@@ -3,20 +3,8 @@
 require 'yaml'
 require 'optparse'
 
-############### load config , get relationsip of SUFFIX <-> .bed file ( if exists )
-# $conf = [ [suffix1, target_bases1], [suffix2, target_bases2], ...  ]
-$conf = YAML.load_file( File.join( File.dirname(__FILE__) , '../config.yml' ) )['prepkit_info']
-  .map{|arr| [ arr[1], arr[2] ] }
-  .select{|suf, sure_pos_file| sure_pos_file != ''  }
-
-def get_sure_pos(suffix)
-  ret = $conf.select{|suf, sure| suffix.match /#{suf}/ }
-  if ret.length != 0
-    return ret.first[1]
-  else
-    return nil
-  end
-end
+require_relative '../app/prepkit.rb'
+PREP = Prepkit.new()
 
 ############### get args, todo: prefer _ than - in log opt
 
@@ -46,7 +34,7 @@ RUN_DIR = [ "/data/HiSeq2000/#{run_name}/Unaligned/" ]
 PREFIX = 'Project_'
 sample_names = ''
 RUN_NO=['PE001']
-sure_pos = get_sure_pos( OPT[:suffix] )
+sure_pos = PREP.suffix2sure_pos( OPT[:suffix] )
 rna_flag = (suffix == '_RNA')? true : false
 
 
@@ -166,7 +154,7 @@ EOS
   if ! rna_flag
     f.write <<EOS
 \tcd $BASE_DIR/$DIR && date >> make.log && (time sh run.sh) >> make.log 2>> make.log
-\tcd $BASE_DIR/ && sh #{OPT[:path_check]} $DIR >> check_results.log 2>> check_results.log
+\tcd $BASE_DIR/ && #{OPT[:path_check]} $DIR >> check_results.log 2>> check_results.log
 EOS
   else
     f.puts "\tqsub -N RNA-$DIR -o $DIR/make.log -j y /work/HiSeq2000/BaseCall/qsub_rna.sh $DIR"

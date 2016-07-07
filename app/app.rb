@@ -12,6 +12,10 @@ require 'verify_config'
 config_path = File.join( File.dirname(__FILE__), '../config.yml' )
 verify_config( config_path )
 
+require 'prepkit.rb'
+PREP = Prepkit.new()
+
+
 require 'myconfig'
 $SETTINGS = MyConfig.new( config_path )
 require "init.rb"
@@ -152,35 +156,10 @@ end
 
 def dir_exists?(slide, library_id, prep_kit)
   raise "args include nil" if slide.nil? or library_id.nil?
-  p = $SETTINGS.storage_root + '/' + slide.to_s + '/' + library_id.to_s + get_suffix(prep_kit)
+  p = $SETTINGS.storage_root + '/' + slide.to_s + '/' + library_id.to_s + PREP.get_suffix(prep_kit)
   #return p
   File.exists? p
 end
-
-class UnknownPrepkitError < StandardError
-  attr_reader :prepkit
-  def initialize(prepkit)
-    @message = prepkit
-  end  
-end
-
-module Prepkit
-  @@loaded = YAML.load_file('./config.yml')['prepkit_info']
-  @@data = []
-  for arr in @@loaded # arr == [regex, suffix, surepos_filepath]
-    @@data << [ Regexp.new(arr[0]), arr[1], arr[2] ]
-  end
-
-  def self.get( prepkit )
-    for arr in @@data
-      return [ arr[1], arr[2] ] if arr[0] === prepkit
-    end
-    return  nil
-  end
-
-end
-
-mylog.warn Prepkit::get('Agilent SureSelect v6+UTR')
 
 def get_suffix(prep_kit)
   case prep_kit
@@ -204,7 +183,7 @@ end
 # to avoid uncaught throw <- cannot catch error over threads
 def validate_prepkit(checked)
   checked.group_by{|r| r['prep_kit']}.each do |prep, row| 
-    ok, info = get_suffix( prep )
+    ok = PREP.get_suffix( prep )
     return [false, prep ] unless ok
   end
   return true
@@ -226,14 +205,15 @@ def prepare_same_suffix(slide, checked)
   prep_kits = checked.map{|r| r['prep_kit'] }
 
   raise 'internal_error' unless prep_kits.uniq.size == 1
-  suffix = get_suffix( prep_kits[0] )
+  suffix = PREP.get_suffix( prep_kits[0] )
+  raise 'err' unless suffix
 
   run_name = NGS::get_run_name(checked)
   ids = checked.map{|r| r['library_id']}
   storage = File.join( $SETTINGS.storage_root, slide)
 
   cmd = <<-EOS
-  ruby #{$SETTINGS.root}/calc_dup/make_run.rb --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids.join(',')} --storage #{storage} --path-check-result #{$SETTINGS.root}/calc_dup/check_results.sh --path-makefile #{$SETTINGS.makefile_path}
+  ruby #{$SETTINGS.root}/calc_dup/make_run.rb --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids.join(',')} --storage #{storage} --path-check-result #{$SETTINGS.root}/calc_dup/check_results.rb --path-makefile #{$SETTINGS.makefile_path}
         EOS
   
   Dir.chdir($SETTINGS.storage_root){

@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env bash
+
 START=${1%%_*}
 if [ $# -ge 2 ];then
     END=${2%%_*}

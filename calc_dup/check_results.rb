@@ -1,4 +1,4 @@
-#!/bio/bin/ruby
+#!/usr/bin/env ruby
 
 # premise: current dierctory is run-directory, each sample-directories exist under the current directory
 # take 1 arg; comma separated sampe-directories; ex. 6758_1_SS5UTR,6759_1_SS5UTR

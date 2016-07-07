@@ -13,6 +13,5 @@ require "log"
 require "task_manager"
 require "ngs_csv"
 require "task_hgmd"
-
 TaskHgmd.init_db()
-
+require 'prepkit'
