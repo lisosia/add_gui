@@ -8,17 +8,16 @@ set :root, File.expand_path( '../../.', __FILE__)
 
 $LOAD_PATH.push( File.dirname(__FILE__) )
 
-require 'verify_config'
+require_relative './verify_config.rb'
 config_path = File.join( File.dirname(__FILE__), '../config.yml' )
 verify_config( config_path )
 
-require 'prepkit.rb'
+require_relative './prepkit.rb'
 PREP = Prepkit.new()
 
-
-require 'myconfig'
+require_relative 'myconfig.rb'
 $SETTINGS = MyConfig.new( config_path )
-require "init.rb"
+require_relative "./init.rb"
 include MyLog
 
 rack_logger = Logger.new('./log/app.log')
@@ -34,7 +33,6 @@ before do
   @table = NGS::readCSV( $SETTINGS.ngs_file )
   @show_headers = ['slide', 'run_name', 'application', 'library_id']
 end
-
 
 get '/' do
   if @params[:range] and /\A[0-9]+-[0-9]+/ === @params[:range]
@@ -80,7 +78,7 @@ end
 
 get '/graph/:slide' do
   slide = @params[:slide]
-  unless File.exist? "#{$SETTINGS.root}/public/graph/#{slide}.png"
+  unless File.exist? File.join($SETTINGS.root, 'public/graph/#{slide}.png' )
     mk_graph(slide)
   end
   haml :graph , :locals => {:slide => "#{slide}"}
@@ -102,7 +100,6 @@ mkdir -p #{$SETTINGS.root}/public/graph
 cd #{$SETTINGS.root}/public/graph && cat #{$SETTINGS.storage_root}/#{slide}/check_results.log | python #{$SETTINGS.root}/etc/mk_graph/mk_graph.py
 mv tmp.png #{$SETTINGS.root}/public/graph/#{slide}.png
 EOS
-  redirect to "/graph/#{slide}"
 end
 
 get '/process' do
@@ -133,7 +130,6 @@ get '/progress/:slide' do
     else
       "! file-not-exists"
     end
-
     
   end
 
@@ -152,28 +148,8 @@ end
 
 def dir_exists?(slide, library_id, prep_kit)
   raise "args include nil" if slide.nil? or library_id.nil?
-  p = $SETTINGS.storage_root + '/' + slide.to_s + '/' + library_id.to_s + PREP.get_suffix(prep_kit)
-  #return p
+  p = File.join( $SETTINGS.storage_root, slide, library_id, PREP.get_suffix(prep_kit) )
   File.exists? p
-end
-
-def get_suffix(prep_kit)
-  case prep_kit
-  # when /^N.A./ then return ''
-  when /^Illumina TruSeq/ then return '_TruSeq'
-  when /^Agilent SureSelect custom 0.5Mb/ then return '_SSc0_5Mb'
-  when /^Agilent SureSelect custom 50Mb/ then return '_SS50Mb'
-  when /^Agilent SureSelect v4\+UTR/ then return '_SS4UTR'
-  when /^Agilent SureSelect v5\+UTR/ then return '_SS5UTR'
-  when /^Agilent SureSelect v6\+UTR/ then return '_SS6UTR'
-  when /^Agilent SureSelect v5/ then return '_SS5'
-  when /^Amplicon/ then return '_Amplicon'
-  when "RNA" then return '_RNA'
-  when /^TruSeq DNA PCR-Free Sample Prep Kit/ then return '_WG'
-  else
-    STDERR.puts "WARNING Uninitilalized value; #{prep_kit}"
-    return [nil,  prep_kit ]
-  end  
 end
 
 # to avoid uncaught throw <- cannot catch error over threads
