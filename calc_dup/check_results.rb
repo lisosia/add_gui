@@ -1,6 +1,10 @@
 #!/bio/bin/ruby
 
+# premise: current dierctory is run-directory, each sample-directories exist under the current directory
+# take 1 arg; comma separated sampe-directories; ex. 6758_1_SS5UTR,6759_1_SS5UTR
+
 samples = ARGV[0].split(",")
+samples.map!{|s| ( s[-1] == '/')? s[0...-1] : s} # cut last '/' if exists
 
 for s in samples do
   no = s.split('_')[0] # 7244, 7245, etc
@@ -18,7 +22,7 @@ for s in samples do
   end
 
   ## system (do not pass through error) <-> exec.backquote (stop when error in bash)
-  system "ls -l #{dir}/fastq/|awk 'NF>3 && $11!~/#{no}/{print}' " 
+  system "ls -l #{dir}/fastq/ | awk 'NF>3 && $11!~/#{no}/{print}' " 
   check = `awk '{print $1}' #{dir}/mpileup/ano/#{s}.sorted.ExAC |uniq|tr '\n' ','`
 
   for chr in (1..22).to_a.push('X', 'Y') do
@@ -31,7 +35,8 @@ for s in samples do
   end
 
   file_dir = File.expand_path File.dirname(__FILE__)
-  system "cat #{s}/stat/map/*.Nmap | perl #{file_dir}/calc_map_rate.pl"
+  # system "cat #{s}/stat/map/*.Nmap | perl #{file_dir}/calc_map_rate.pl"
+  system "cat #{s}/stat/map/*.Nmap | ruby #{file_dir}/calc_map_rate.rb"
   system "cat #{s}/stat/dup/dup.stat | perl #{file_dir}/calc_dup.pl"
   system "cat #{s}/stat/snv/*.stats | perl -pwe \"s/\t/,/g\""
 

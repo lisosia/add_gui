@@ -38,10 +38,11 @@ for req in [:libids_raw, :run, :run_name, :suffix, :storage, :path_check, :path_
 end
 
 run = OPT[:run]
+run_name = OPT[:run_name]
 suffix = OPT[:suffix]
 libid_list = OPT[:libids_raw].split(/,/)
 path_makefile = OPT[:path_makefile]
-RUN_DIR = [ "/data/HiSeq2000/$RUN_NAME/Unaligned/" ]
+RUN_DIR = [ "/data/HiSeq2000/#{run_name}/Unaligned/" ]
 PREFIX = 'Project_'
 sample_names = ''
 RUN_NO=['PE001']
@@ -71,7 +72,7 @@ for sample in libid_list
         puts "Error; #{direc} was not found"
         next
       end
-      if run_no[i].match /^PE/
+      if RUN_NO[i].match /^PE/
         RUN_PE << RUN_NO[i]
         RUN_DIR_PE << direc
       else
@@ -93,7 +94,7 @@ for sample in libid_list
   ############### RUN_PE loop to make fastq_pe
   for pe, pe_dir in RUN_PE.zip(RUN_DIR_PE)
     for fst in Dir.glob( File.join( pe_dir, "*.fastq.gz" ) )
-      temp = fst.split("_")
+      temp = File.basename( fst ).split("_")
       temp[4].gsub! /R/, ''
       temp[5].gsub! /.fastq.gz/, ''
       file_base = "#{sample}.#{pe}.#{temp[3]}_#{temp[5]}_#{temp[4]}"
@@ -108,13 +109,14 @@ for sample in libid_list
 
     end
   end
+  puts " --- #{fastq_pe}"
   fastq_pe = fastq_pe.join(" ")
 
   fastq_se = []
   ############### RUN_SE loop to make fastq_se
   for se, se_dir in RUN_SE.zip(RUN_DIR_SE)
     for fst in Dir.glob( File.join( se_dir, "*_R1_*.fastq.gz" ) )
-      temp = fst.split("_")
+      temp = File.basename( fst ).split("_")
       temp[4].gsub! /R/, ''
       temp[5].gsub! /.fastq.gz/, ''
       file_base = "#{sample}.#{se}.#{temp[3]}_#{temp[5]}_#{temp[4]}"

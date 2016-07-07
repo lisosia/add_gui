@@ -16,24 +16,25 @@ for NO in `seq -f %04g $START $END`;do
     fi
 
     if [ -n "$SAMPLE" ];then
-#echo "[check $NO]"
-ls -l $DIR/fastq/|awk "NF>3 && \$11!~/$NO/{print}"
-CHECK=`awk '{print $1}' $DIR/mpileup/ano/${SAMPLE}.sorted.ExAC |uniq|tr '\n' ','`
-for chr in {1..22} X Y;do
-    ls -l $DIR/mpileup/*.chr${chr}.raw.bcf|awk '$5<1000 {print "WARNING:check " $9}'
-    ls -l $DIR/mpileup/*.chr${chr}.consensus.bz2|awk '$5<1000 {print "WARNING:check " $9}'
-    if [ ! `echo "$CHECK" |grep "chr$chr,"` ];then
-       echo "WARNING:check chr$chr in $DIR/mpileup/ano/${SAMPLE}.sorted.ExAC"
-   fi
-done
+	# echo "[check $NO]"
+	ls -l $DIR/fastq/|awk "NF>3 && \$11!~/$NO/{print}"
+	CHECK=`awk '{print $1}' $DIR/mpileup/ano/${SAMPLE}.sorted.ExAC |uniq|tr '\n' ','`
+	for chr in {1..22} X Y;do
+	    ls -l $DIR/mpileup/*.chr${chr}.raw.bcf|awk '$5<1000 {print "WARNING:check " $9}'
+	    ls -l $DIR/mpileup/*.chr${chr}.consensus.bz2|awk '$5<1000 {print "WARNING:check " $9}'
+	    if [ ! `echo "$CHECK" |grep "chr$chr,"` ];then
+		echo "WARNING:check chr$chr in $DIR/mpileup/ano/${SAMPLE}.sorted.ExAC"
+	    fi
+	done
 
-file_dir=$(dirname $(readlink -f f$0) )
+	file_dir=$(dirname $(readlink -f $0) )
 
-cat $SAMPLE/stat/map/*.Nmap | perl $file_dir/calc_map_rate.pl
-cat $SAMPLE/stat/dup/dup.stat | perl $file_dir/calc_dup.pl
-cat $SAMPLE/stat/snv/*.stats | perl -pwe "s/\t/,/g"
-else
-    echo $NO is not found!!
-fi
+	# cat $SAMPLE/stat/map/*.Nmap | perl $file_dir/calc_map_rate.pl
+	cat $SAMPLE/stat/map/*.Nmap | ruby $file_dir/calc_map_rate.rb
+	cat $SAMPLE/stat/dup/dup.stat | perl $file_dir/calc_dup.pl
+	cat $SAMPLE/stat/snv/*.stats | perl -pwe "s/\t/,/g"
+    else
+	echo $NO is not found!!
+    fi
 done
 
