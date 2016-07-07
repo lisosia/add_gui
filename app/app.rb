@@ -33,19 +33,23 @@ end
 
 
 get '/' do
-  @max_slide = 2**30
-  @min_slide = -1
+  max = 2**30
+  min = -1
   if @params[:range] and /\A[0-9]+-[0-9]+/ === @params[:range]
-    @min_slide , @max_slide = @params[:range].split('-').map{|v| v.chomp.to_i}
+    min , max = @params[:range].split('-').map{|v| v.chomp.to_i}
+    @filtered_table = slide_filtered_table(@table, min, max)
+  elsif @params[:range] == 'others'
+    @filtered_table = @table.group_by{|r| r.values_at('slide').first}.reject{|slide,arr| /\A[-+]?[0-9]+\z/ === slide }
+  else
+    @filtered_table = @table.group_by{|r| r.values_at('slide').first}
   end
-  @filtered_table = slide_filtered_table(@table)
   @show_headers = ['slide', 'run_name', 'application', 'library_id', 'prep_kit']
 
   haml :table, :locals => {:check_dir => @params[:check_dir]}
 end
 
-def slide_filtered_table(table, include_not_num = false)
-  table.group_by{|r| r.values_at('slide').first}.select{|k,v| (include_not_num and !( /\A[-+]?[0-9]+\z/ === k) ) or (k.to_i <= @max_slide and k.to_i >= @min_slide) }
+def slide_filtered_table(table, min, max, include_not_num = false)
+  table.group_by{|r| r.values_at('slide').first}.select{|k,v| (include_not_num and !( /\A[-+]?[0-9]+\z/ === k) ) or (k.to_i <= max and k.to_i >= min ) }
 end
 
 post '/' do

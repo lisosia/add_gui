@@ -19,7 +19,9 @@
 %h1 table
 
 - for i in 0.upto NGS::int_slides(@table).max / 50
-  <a href="?range=#{ (i*50+1).to_s + '-' + ((i+1)*50).to_s }" >#{(i*50+1).to_s + '-' + ((i+1)*50).to_s}</a> 
+  - range_str = "#{ i*50+1 }-#{ (i+1)*50 }"
+  <a href="?range=#{ range_str }" >#{ range_str }</a> 
+<a href="?range=others" >others</a> 
 
 <br><br>
 
