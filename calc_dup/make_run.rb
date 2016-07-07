@@ -145,6 +145,8 @@ end ########## END OF MAIN LOOP ; for sample in libids
 RUN_SCRIPT = File.join( run, "auto_run#{suffix}.sh" )
 File.open( RUN_SCRIPT, 'w+' ) do |f|
   f.write <<EOS
+#!/usr/bin/env bash
+
 BASE_DIR=#{OPT[:storage]}
 for DIR in #{ libid_list.map{|s| s + suffix}.join(" ") }
 do
@@ -161,5 +163,5 @@ EOS
   end
 
   f.puts 'done'
-
+  f.puts 'exit 0'
 end

@@ -37,8 +37,6 @@ end
 
 
 get '/' do
-  max = 2**30
-  min = -1
   if @params[:range] and /\A[0-9]+-[0-9]+/ === @params[:range]
     min , max = @params[:range].split('-').map{|v| v.chomp.to_i}
     @filtered_table = slide_filtered_table(@table, min, max)
@@ -70,11 +68,9 @@ post '/' do
     return haml( :error, :locals => { :unknown_prepkit => prepkit } )
   end
 
-
   prepare(slide, library_ids_checked )
 
-
-  redirect to('/')
+  redirect to('/process')
 end
 
 get '/all' do
@@ -217,7 +213,7 @@ def prepare_same_suffix(slide, checked)
         EOS
   
   Dir.chdir($SETTINGS.storage_root){
-    File.open("./#{slide}.tmplog___", 'w') {|f| f.write(cmd) }
+    File.open("./#{slide}.make_run.rb.log", 'w') {|f| f.write(cmd) }
     `#{cmd}`
   }
 

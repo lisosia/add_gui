@@ -70,13 +70,15 @@ values( -1, \"NotDone\", '#{uuid}', '#{args.to_s}' )
     args_str = [slide ,ids.join(',')].join(" ")
     add_task(uuid, args_str)
     # http://dba.stackexchange.com/questions/47919/how-do-i-specify-a-timeout-in-sqlite3-from-the-command-line
-    bash_cmd = <<-EOS
+    bash_cmd = <<EOS
+#!/usr/bin/env bash
 set -xv
-bash #{bashfile} #{ args_str } #{bashfile}.out 2> #{bashfile}.err || exit 1
+
+bash #{bashfile} #{ args_str } > #{bashfile}.out 2> #{bashfile}.err
 sqlite3 -init ./etc/set_timeout.sql #{@@db_file} 'UPDATE tasks SET status = \"Done\" WHERE uuid = \"#{uuid}\" '
 # ruby #{$SETTINGS.root}/calc_dup/check_results.rb #{ids.join(',')}
 exit 0
-    EOS
+EOS
 
     `mkdir -p ./log/tasks`
     
