@@ -15,3 +15,4 @@ require "ngs_csv"
 require "task_hgmd"
 
 TaskHgmd.init_db()
+

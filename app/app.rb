@@ -7,8 +7,13 @@ require 'sinatra/config_file'
 set :root, File.expand_path( '../../.', __FILE__)
 
 $LOAD_PATH.push( File.dirname(__FILE__) )
+
+require 'verify_config'
+config_path = File.join( File.dirname(__FILE__), '../config.yml' )
+verify_config( config_path )
+
 require 'myconfig'
-$SETTINGS = MyConfig.new( './config.yml' )
+$SETTINGS = MyConfig.new( config_path )
 require "init.rb"
 include MyLog
 
@@ -20,7 +25,7 @@ end
 
 before do
   unless File.exists? $SETTINGS.storage_root
-    raise "invalid storage_root path<#{settings.storage_root}> specified in configfile<#{config_file_path}>"
+    raise "invalid storage_root path<#{settings.storage_root}> specified in configfile<#{config_path}>"
   end
   @table = NGS::readCSV( $SETTINGS.ngs_file )
   @show_headers = ['slide', 'run_name', 'application', 'library_id']
