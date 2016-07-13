@@ -41,7 +41,7 @@ for s in samples do
 
   file_dir = File.expand_path File.dirname(__FILE__)
   # system "cat #{s}/stat/map/*.Nmap | perl #{file_dir}/calc_map_rate.pl"
-  system "cat #{s}/stat/map/*.Nmap | ruby #{file_dir}/calc_map_rate.rb"
+  system "cat #{s}/stat/map/*.Nmap | ruby -W0 #{file_dir}/calc_map_rate.rb"
   system "cat #{s}/stat/dup/dup.stat | perl #{file_dir}/calc_dup.pl"
   system "cat #{s}/stat/snv/*.stats | perl -pwe \"s/\t/,/g\""
 
