@@ -36,7 +36,7 @@ Gemfile.lock
 .rvmrc
 
 ###private
-config.yml
+config.yml*
 log/
 sim/
 inner_files/

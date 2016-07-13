@@ -26,9 +26,11 @@ module TaskHgmd
   def self.init_db()
     sql = <<-EOS
 create table if not exists tasks(
-pid int, 
-status text,
-uuid string,
+pid int not null, 
+ppid int not null,
+createat string not null,
+status text not null,
+uuid string not null,
 args string
     )
     EOS
@@ -37,18 +39,18 @@ args string
     db.close()
   end 
 
-  def self.add_task(uuid, args = nil)
+  def self.add_task(uuid, create, args )
     db = open_db
     db.execute <<-EOS
-insert into tasks(pid, status, uuid, args)
-values( -1, \"NotDone\", '#{uuid}', '#{args.to_s}' )
+insert into tasks(pid,ppid, status, createat, uuid, args)
+values( -1, -1, \"NotDone\", '#{create}', '#{uuid}', '#{args.to_s}' )
     EOS
     db.close
   end
 
-  def self.set_pid(uuid, pid)
+  def self.set_pid(uuid, pid, ppid)
     db = open_db
-    db.execute "update tasks set pid = \"#{pid}\" where uuid = \"#{uuid}\" "
+    db.execute "update tasks set pid = \"#{pid}\", ppid = \"#{ppid}\" where uuid = \"#{uuid}\" "
     db.close
   end
 
@@ -64,32 +66,33 @@ values( -1, \"NotDone\", '#{uuid}', '#{args.to_s}' )
     `cmd`
   end
 
-  def self.spawn(bashfile, slide, ids , dir, uuid = Time.now.strftime("%Y%m%d-%H_%M_%S%Z") + "--" + SecureRandom.uuid )
+  def self.spawn(bashfile, slide, ids , dir = File.join($SETTINGS.storage_root,slide) ) # dir = storage dir
+    time_now = Time.now
+    time_str = time_now.strftime("%Y%m%d-%H_%M_%S%Z")
+    uuid = time_now.strftime("%Y%m%d-%H_%M_%S%Z") + "--" + SecureRandom.uuid 
+    
 
     init_db()
     args_str = [slide ,ids.join(',')].join(" ")
-    add_task(uuid, args_str)
+    add_task(uuid,time_str, args_str)
+
     # http://dba.stackexchange.com/questions/47919/how-do-i-specify-a-timeout-in-sqlite3-from-the-command-line
-    bash_cmd = <<EOS
+    `mkdir #{dir}`
+    wrap_file = 'auto_run_wrapper.sh'
+    File.open( File.join(dir, wrap_file) , 'w+') do |f|
+      f.write <<EOS
 #!/usr/bin/env bash
 set -xv
-
-bash #{bashfile} #{ args_str } > #{bashfile}.out 2> #{bashfile}.err
-sqlite3 -init ./etc/set_timeout.sql #{@@db_file} 'UPDATE tasks SET status = \"Done\" WHERE uuid = \"#{uuid}\" '
-# ruby #{$SETTINGS.root}/calc_dup/check_results.rb #{ids.join(',')}
+bash #{bashfile} #{ args_str }
+sqlite3 -init #{File.join($SETTINGS.root,"etc/set_timeout.sql")} #{@@db_file} 'UPDATE tasks SET status = \"Done\" WHERE uuid = \"#{uuid}\" '
 exit 0
 EOS
 
-    `mkdir -p ./log/tasks`
-    
-    File.open( File.join($SETTINGS.root, 'log/tasks/', "#{slide}__#{uuid}.bash") , 'w') do |f|
-      f.write bash_cmd
     end
-
-    `mkdir #{dir}`
-    pid = Process.spawn( bash_cmd , :chdir => dir, :pgroup=>nil,
-                         [:out,:err]=>[ File.join($SETTINGS.root,"log/tasks/", "#{slide}__#{uuid}" ), "w"] )
-    set_pid(uuid, pid)
+    File.open( File.join($SETTINGS.root, 'log/tasklog'), "a+" ){|f| f.puts "#{args_str}"}
+    pid = Process.spawn( "bash ./#{wrap_file} __uuid__=#{uuid}" , :chdir => dir, :pgroup=>nil,
+                         [:out,:err]=>[ File.join(dir, wrap_file + '.log') , "w"] )
+    set_pid(uuid, pid, Process.pid)
     Process.detach pid
     return pid
   end

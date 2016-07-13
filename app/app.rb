@@ -105,11 +105,14 @@ end
 get '/process' do
   STEP = 10
   offset = @params[:offset].nil? ? 0 : @params[:offset].to_i
-  tasks = TaskHgmd.run_sql("select pid,status,args,uuid from tasks order by uuid desc limit #{STEP} OFFSET #{offset}")
+
+  headers =   %w(pid ppid status createat args uuid)
+  head_show =   [0,  1,   2,     3,       4]
+  tasks = TaskHgmd.run_sql("select #{headers.join(',')} from tasks order by uuid desc limit #{STEP} OFFSET #{offset}")
   count = TaskHgmd.run_sql("select COUNT(pid) from tasks").flatten[0]
   # tasks.map{|e| e.inspect}.join("<br>")
 
-  haml :process ,:locals=>{:tasks => tasks, :step => STEP, :count => count}
+  haml :process ,:locals=>{:tasks => tasks, :step => STEP, :count => count, :headers => headers, :head_show => head_show}
 end
 
 get '/progress/:slide' do

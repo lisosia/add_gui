@@ -5,15 +5,19 @@
 %table(border="1")
   %thread
     %tr
-      - for header in %w(pid status args uuid)
-        %th= header.to_s
+      - headers.each_with_index do |h,i|
+        - next unless (head_show.include? i)
+        %th= h.to_s
     %tbody
       - for task in tasks
         %tr
-          - for col in task
+          - task.each_with_index do |col, i|
+            - next unless (head_show.include? i)
             %td= col.to_s
           %td
-            %a(href = "/progress/#{task[2].split[0]}") progress
+            %a(href = "/progress/#{task[headers.find_index("args")].split[0]}") progress
+          %td
+            ="ps axo pid,ppid,pgid,command #{task[headers.find_index("pid")]} |grep '__uuid__=#{task[headers.find_index("uuid")]}' |grep -v 'grep'"
 
 <br/>
 - for i in 0.upto (count / step)
