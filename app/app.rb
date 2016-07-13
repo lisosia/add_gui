@@ -103,25 +103,30 @@ EOS
 end
 
 get '/process' do
-  tasks = TaskHgmd.run_sql("select pid,status,args,uuid from tasks order by uuid desc limit 5")
-  tasks.map{|e| e.inspect}.join("<br>")
+  STEP = 10
+  offset = @params[:offset].nil? ? 0 : @params[:offset].to_i
+  tasks = TaskHgmd.run_sql("select pid,status,args,uuid from tasks order by uuid desc limit #{STEP} OFFSET #{offset}")
+  count = TaskHgmd.run_sql("select COUNT(pid) from tasks").flatten[0]
+  # tasks.map{|e| e.inspect}.join("<br>")
 
-  haml :process ,:locals=>{:tasks => tasks}
+  haml :process ,:locals=>{:tasks => tasks, :step => STEP, :count => count}
 end
 
 get '/progress/:slide' do
   d = Dir.glob( File.join($SETTINGS.storage_root, params['slide'], "*" ) ).select{|f| File.directory? f}
-  def cont(dr)
+  missings = []
+  def cont(dr, arr)
     file = File.join dr,"make.log.progress"
     if File.exist? file 
       `cat #{file}`
     else
+      arr << file
       "! file-not-exist" 
     end	
   end
 
-  show = d.map{ |e|  [ e, cont(e) ] }
-  progresses = show.map{|f| f[0] + "; " + f[1] }.join("<br>")
+  show = d.map{ |e|  [ e, cont(e, missings) ] }
+  progresses = show.map{|f| f[0] + "; " + f[1].gsub("\tend", ' -> ').gsub("\t", ' ' ).gsub('  ', ' ').gsub("\n", " ") }.join("|\n") << "|"
   
   def check_results(slide)
     file = File.join $SETTINGS.storage_root, slide, "check_results.log"
@@ -130,14 +135,25 @@ get '/progress/:slide' do
     else
       "! file-not-exists"
     end
-    
+
   end
 
-  "check_results 's WARNING(s)<BR/>
+missings_str = missings.size > 0 ? "<font color='red'>missing check_results.log (work not done, or error occured)<br/> #{missings.join("\n")} </font>" : ""
+<<EOS
+<h2> > check_results 's WARNING(s)</h2>
+<textarea cols="120" wrap="off" readonly>
 #{check_results( @params[:slide] )}
+</textarea>
 <BR/><BR/>
+<h2> > progress of each sample dirs // make.progress.log</h2>
+#{missings_str}
+#{missings_str.empty? ? "" : "<br/><br/>"}
+
+<small>progress sequence : [bam-index -> mpileup -> compress -> rars]</small><br/>
+<textarea cols="120" wrap="off" readonly>
 #{progresses}
-"
+</textarea>
+EOS
 end
 
 def dir_slide_exist?(slide)

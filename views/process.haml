@@ -1,4 +1,6 @@
-%a(href = "/") home
+%a(href = "/") home <br/>
+
+%p= "#{count} entries"
 
 %table(border="1")
   %thread
@@ -12,3 +14,8 @@
             %td= col.to_s
           %td
             %a(href = "/progress/#{task[2].split[0]}") progress
+
+<br/>
+- for i in 0.upto (count / step)
+  - range_str = "#{i*step}-#{(i+1)*step -1}"
+  <a href="?offset=#{ i*step }" >#{ range_str }</a> 
