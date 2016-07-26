@@ -1,5 +1,6 @@
 module PreventDup
   def self.run(hist_file)
+    `touch #{hist_file}`
     d = self.dup?(hist_file)
     raise "duplicate process; pgid = #{d}" if d
     File.open(hist_file, "a+") do |f|

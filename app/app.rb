@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+require_relative "prevent_dup.rb"
+PreventDup::run( File.expand_path(__FILE__) + ".pid.hist" )
+
 require 'sinatra'
 require 'sinatra/reloader'
 require 'sinatra/config_file'
@@ -28,7 +31,7 @@ end
 
 before do
   unless File.exists? $SETTINGS.storage_root
-    raise "invalid storage_root path<#{settings.storage_root}> specified in configfile<#{config_path}>"
+    raise "invalid storage_root path<#{$SETTINGS.storage_root}> specified in configfile<#{config_path}>"
   end
   @table = NGS::readCSV( $SETTINGS.ngs_file )
   @show_headers = ['slide', 'run_name', 'application', 'library_id']
