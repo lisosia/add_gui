@@ -1,3 +1,10 @@
+root: /home/haito/Work/gui_viewer
 storage_root: ./sim/storage/
 ngs_file: ./sim/ngs.csv
 db_file: ./tmp/tasklog.sqlite3
+makefile_path: ./tmp/makefile_dummy
+# array of [regex, suffix, surepos_filepath, taget_bases]
+prepkit_info: [
+["prep1", "SUF1", "", 10001],
+["prep2", "SUF2", "", 10002]
+]

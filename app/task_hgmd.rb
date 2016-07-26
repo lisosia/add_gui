@@ -9,8 +9,6 @@ module TaskHgmd
   raise "db_dile entry not exists in config file" if @@db_file.nil?
 
   def self.open_db()
-    puts @@db_file
-    `mkdir -p tmp`
     db = SQLite3::Database.open(@@db_file)
     db.busy_timeout 3000
     return db
@@ -26,7 +24,7 @@ module TaskHgmd
   def self.init_db()
     sql = <<-EOS
 create table if not exists tasks(
-pid int not null, 
+pid int not null,
 ppid int not null,
 createat string not null,
 status text not null,
@@ -35,9 +33,9 @@ args string
     )
     EOS
     db = open_db()
-    db.execute sql      
+    db.execute sql
     db.close()
-  end 
+  end
 
   def self.add_task(uuid, create, args )
     db = open_db
@@ -57,7 +55,7 @@ values( -1, -1, \"NotDone\", '#{create}', '#{uuid}', '#{args.to_s}' )
   def self.done_task(uuid)
     db = open_db
     db.execute "UPDATE tasks SET status = \"Done\" WHERE uuid = \"#{uuid}\" "
-    db.close    
+    db.close
   end
   def self.done_task_bash(uuid)
     cmd = <<-EOS
@@ -69,15 +67,14 @@ values( -1, -1, \"NotDone\", '#{create}', '#{uuid}', '#{args.to_s}' )
   def self.spawn(bashfile, slide, ids , dir = File.join($SETTINGS.storage_root,slide) ) # dir = storage dir
     time_now = Time.now
     time_str = time_now.strftime("%Y%m%d-%H_%M_%S%Z")
-    uuid = time_now.strftime("%Y%m%d-%H_%M_%S%Z") + "--" + SecureRandom.uuid 
-    
+    uuid = time_now.strftime("%Y%m%d-%H_%M_%S%Z") + "--" + SecureRandom.uuid
 
     init_db()
     args_str = [slide ,ids.join(',')].join(" ")
     add_task(uuid,time_str, args_str)
 
     # http://dba.stackexchange.com/questions/47919/how-do-i-specify-a-timeout-in-sqlite3-from-the-command-line
-    `mkdir #{dir}`
+    `mkdir -p #{dir}`
     wrap_file = 'auto_run_wrapper.sh'
     File.open( File.join(dir, wrap_file) , 'w+') do |f|
       f.write <<EOS

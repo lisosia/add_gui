@@ -57,13 +57,13 @@ end
 
 post '/' do
   slide = @params[:slide]
-  
-  return "empty post; please return to previous page" if @params[:check].nil? 
+
+  return "empty post; please return to previous page" if @params[:check].nil?
   rows = @table.select{|r| r['slide'] == slide}
   library_ids_checked = params[:check].map{ |lib_id| @table.select{|r| r['library_id'] == lib_id}[0] }
   mylog.info 'post / called. slide=#{slide}; checked_ids=#{library_ids_checked}'
   raise "internal eoor; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
-  
+
   ok, prepkit = validate_prepkit( library_ids_checked )
   unless ok
     return haml( :error, :locals => { :unknown_prepkit => prepkit } )
@@ -106,16 +106,16 @@ EOS
 end
 
 get '/process' do
-  STEP = 10
+  step = 10
   offset = @params[:offset].nil? ? 0 : @params[:offset].to_i
 
   headers =   %w(pid ppid status createat args uuid)
   head_show =   [0,  1,   2,     3,       4]
-  tasks = TaskHgmd.run_sql("select #{headers.join(',')} from tasks order by uuid desc limit #{STEP} OFFSET #{offset}")
+  tasks = TaskHgmd.run_sql("select #{headers.join(',')} from tasks order by uuid desc limit #{step} OFFSET #{offset}")
   count = TaskHgmd.run_sql("select COUNT(pid) from tasks").flatten[0]
   # tasks.map{|e| e.inspect}.join("<br>")
 
-  haml :process ,:locals=>{:tasks => tasks, :step => STEP, :count => count, :headers => headers, :head_show => head_show}
+  haml :process ,:locals=>{:tasks => tasks, :step => step, :count => count, :headers => headers, :head_show => head_show}
 end
 
 get '/progress/:slide' do
