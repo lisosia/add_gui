@@ -12,8 +12,6 @@ set :root, File.expand_path( '../../.', __FILE__)
 $LOAD_PATH.push( File.dirname(__FILE__) )
 
 config_path = File.join( File.dirname(__FILE__), '../config.yml' )
-require_relative './verify_config.rb'
-verify_config( config_path )
 
 require_relative './prepkit.rb'
 require_relative './config.rb'

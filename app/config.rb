@@ -1,5 +1,5 @@
 require "yaml"
-require_relative "verify_config.rb"
+
 REQ = %i{root storage_root ngs_file db_file makefile_path prepkit_info}
 FILES_INDEX = [0,1,2,3,4]
 
