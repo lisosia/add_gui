@@ -41,5 +41,5 @@ log/
 sim/
 inner_files/
 public/
-
+app/app.rb.pid.hist
 etc/mk_graph/check_results.log
