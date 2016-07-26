@@ -64,10 +64,10 @@ values( -1, -1, \"NotDone\", '#{create}', '#{uuid}', '#{args.to_s}' )
     `cmd`
   end
 
-  def self.spawn(bashfile, slide, ids , dir = File.join($SET.storage_root,slide) ) # dir = storage dir
+  def self.spawn( slide, ids , bashfile, dir = File.join($SET.storage_root,slide) )
     time_now = Time.now
     time_str = time_now.strftime("%Y%m%d-%H_%M_%S%Z")
-    uuid = time_now.strftime("%Y%m%d-%H_%M_%S%Z") + "--" + SecureRandom.uuid
+    uuid = time_now.strftime("%Y%m%d-%H%M%S") + "--" + SecureRandom.uuid
 
     init_db()
     args_str = [slide ,ids.join(',')].join(" ")

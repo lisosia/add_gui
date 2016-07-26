@@ -11,14 +11,14 @@ set :root, File.expand_path( '../../.', __FILE__)
 
 $LOAD_PATH.push( File.dirname(__FILE__) )
 
-require_relative './verify_config.rb'
 config_path = File.join( File.dirname(__FILE__), '../config.yml' )
+require_relative './verify_config.rb'
 verify_config( config_path )
 
 require_relative './prepkit.rb'
-require_relative 'myconfig.rb'
-$SET = MyConfig.new() # laod config.yml
-PREP = Prepkit.new( $SET.prepkit_info )
+require_relative './config.rb'
+$SET = load_config() # laod config.yml
+$PREP = Prepkit.new( $SET.prepkit_info )
 
 require_relative "./init.rb"
 
@@ -170,55 +170,44 @@ end
 
 def dir_exists?(slide, library_id, prep_kit)
   raise "args include nil" if slide.nil? or library_id.nil?
-  p = File.join( $SET.storage_root, slide, library_id, PREP.get_suffix(prep_kit) )
+  p = File.join( $SET.storage_root, slide, library_id, $PREP.get_suffix(prep_kit) )
   File.exists? p
 end
 
 # to avoid uncaught throw <- cannot catch error over threads
 def validate_prepkit(checked)
   checked.group_by(&:prep_kit).each do |prep, row|
-    ok = PREP.get_suffix( prep )
+    ok = $PREP.get_suffix( prep )
     return [false, prep ] unless ok
   end
   return true
 end
 
-# - checked - Array of CSV::Row
+# - checked - Array of Ngs::Col
 def prepare(slide, checked)
   raise 'internal_error' unless ( checked.is_a? Array and checked[0].is_a? NGS::Col)
 
-  group = checked.group_by do |col|
-    PREP.data.map(&:regex).find{ |reg| reg =~ col.prep_kit }
-  end
-  group.each do |regex, row|
-    prepare_same_suffix(slide, row)
-  end
-  return nil
-end
-
-def prepare_same_suffix(slide, checked)
-  mylog.info "prepare_same_suffix called; slide=#{slide} / #{checked.map(&:to_s)}"
-  # get run-name from NGS-file
-
-  prep_kits = checked.map(&:prep_kit)
-  mylog.warn "same regex, but slightly different prep_kits: #{prep_kits}" unless prep_kits.uniq.size == 1
-  suffix = PREP.get_suffix( prep_kits[0] )
-  raise 'err' unless suffix
-
-  run_name = NGS::get_run_name(checked)
-  ids = checked.map{|r| r['library_id']}
-  storage = File.join( $SET.storage_root, slide)
-
-  cmd = <<EOS
-  ruby #{$SET.root}/calc_dup/make_run.rb --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids.join(',')} --storage #{storage} --path-check-result #{$SET.root}/calc_dup/check_results.rb --path-makefile #{$SET.makefile_path}
-EOS
-
-  Dir.chdir($SET.storage_root){
-    File.open("./#{slide}.make_run.rb.log", 'w') {|f| f.write(cmd) }
-    `#{cmd}`
+  group = checked.group_by { |col|
+    $PREP.data.map(&:regex).find{ |reg| reg =~ col.prep_kit }
   }
+  require_relative "../calc_dup/make_run.rb"
+  path_check = File.join($SET.root,"calc_dup/check_results.rb")
+  # make run.sh
+  group.each do |regex, rows|
+    raise "internal error; unknown_prepkit" if regex.nil?
+    prep_kits = rows.map(&:prep_kit)
+    mylog.warn "same regex, but slightly different prep_kits: #{prep_kits}" unless prep_kits.uniq.size == 1
+    run_name = NGS::get_run_name(rows)
+    ids = rows.map(&:library_id) # must be one
+    suffix = $PREP.get_suffix( rows.first.prep_kit )
+    make_run_sh(slide, run_name, suffix, ids, $SET.storage_root, path_check, $SET.makefile_path )
+  end
 
-  # TaskHgmd.spawn("./etc/dummy.sh" , slide ,ids, $SET.root )
-  TaskHgmd.spawn("./auto_run#{suffix}.sh" , slide, ids, storage)
+  # make auto_run.sh
+  bashfile = make_auto_run_sh($SET.storage_root, slide,  group , path_check )
 
+  # launch task
+  TaskHgmd.spawn( slide, checked.map(&:library_id), bashfile )
+
+  return nil
 end

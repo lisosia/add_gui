@@ -4,10 +4,12 @@ require 'yaml'
 require 'optparse'
 
 require_relative '../app/prepkit.rb'
-require_relative '../app/myconfig.rb'
-PREP = Prepkit.new( MyConfig.new().prepkit_info )
+require_relative '../app/config.rb'
+PREP = Prepkit.new( load_config().prepkit_info )
 
 ############### get args, todo: prefer _ than - in log opt
+
+if __FILE__ == $0 
 
 OPT = {}
 opt = OptionParser.new
@@ -31,11 +33,19 @@ run_name = OPT[:run_name]
 suffix = OPT[:suffix]
 libid_list = OPT[:libids_raw].split(/,/)
 path_makefile = OPT[:path_makefile]
-RUN_DIR = [ "/data/HiSeq2000/#{run_name}/Unaligned/" ]
-PREFIX = 'Project_'
+storage = OPT[:storage]
+path_check = OPT[:path_check]
+
+make_run_sh(run, run_name, suffix, libid_list, path_makefile, storage, path_check)
+end
+
+def make_run_sh(run, run_name, suffix, libid_list, storage, path_makefile, path_check)
+
+run_dir = [ "/data/HiSeq2000/#{run_name}/Unaligned/" ]
+prefix = 'Project_'
 sample_names = ''
-RUN_NO=['PE001']
-sure_pos = PREP.suffix2sure_pos( OPT[:suffix] )
+run_no=['PE001']
+sure_pos = PREP.suffix2sure_pos( suffix )
 rna_flag = (suffix == '_RNA')? true : false
 
 
@@ -54,18 +64,18 @@ for sample in libid_list
   run_se , run_dir_se = [] , []
   
   ############### loop to push elements to RUN[_DIR]_[PS]E
-  RUN_DIR.each_with_index do |dir, i|
-    for direc in Dir.glob( File.join( dir, "#{PREFIX}#{sample}*#{suffix}", "Sample_#{sample}*" ) )
+  run_dir.each_with_index do |dir, i|
+    for direc in Dir.glob( File.join( dir, "#{prefix}#{sample}*#{suffix}", "Sample_#{sample}*" ) )
       direc.chomp!
       unless Dir.exists? direc
         puts "Error; #{direc} was not found"
         next
       end
-      if RUN_NO[i].match /^PE/
-        run_pe << RUN_NO[i]
+      if run_no[i].match /^PE/
+        run_pe << run_no[i]
         run_dir_pe << direc
       else
-        run_se << RUN_NO[i]
+        run_se << run_no[i]
         run_dir_se << direc
       end
     end
@@ -74,10 +84,10 @@ for sample in libid_list
   ### !!! ###
   sample += suffix
 
-  FASTQ_DIR ||= File.join( run, sample, genome, 'fastq' )
+  fastq_dir ||= File.join( run, sample, genome, 'fastq' )
   # `` system call -- exit if fail 
   # system() -- exit ruby proess if fail
-  `mkdir -p #{FASTQ_DIR}`
+  `mkdir -p #{fastq_dir}`
   
   fastq_pe = []
   ############### run_pe loop to make fastq_pe
@@ -88,7 +98,7 @@ for sample in libid_list
       temp[5].gsub! /.fastq.gz/, ''
       file_base = "#{sample}.#{pe}.#{temp[3]}_#{temp[5]}_#{temp[4]}"
 
-      cmd = "ln -s #{fst} #{FASTQ_DIR}/#{file_base}.fastq.gz"
+      cmd = "ln -s #{fst} #{fastq_dir}/#{file_base}.fastq.gz"
       # print cmd
       `#{cmd}`
 
@@ -109,8 +119,8 @@ for sample in libid_list
       temp[4].gsub! /R/, ''
       temp[5].gsub! /.fastq.gz/, ''
       file_base = "#{sample}.#{se}.#{temp[3]}_#{temp[5]}_#{temp[4]}"
-      
-      cmd = "ln -s #{fst} #{FASTQ_DIR}/#{file_base}.fastq.gz"
+
+      cmd = "ln -s #{fst} #{fastq_dir}/#{file_base}.fastq.gz"
       # print cmd
       `#{cmd}`
 
@@ -122,47 +132,59 @@ for sample in libid_list
   end
   fastq_se = fastq_se.join(" ")
 
-  ############### make run.sh
+  ############### make run.sh in each sample dir
   if ! rna_flag
     thread = `gxpc e hostname | wc -l`.gsub(/\n/, '')
-    run_file = File.join( run, sample, 'run.sh' )
-    File.open(run_file, "w+") do |f|
+    `mkdir -p #{File.join( storage, run, sample)}`
+    run_file = File.join( storage, run, sample, 'run.sh' )
+    File.open(run_file, "w") do |f|
       f.write "gxpc make -k -j #{thread} -f #{path_makefile} "
       f.write "SAMPLE=#{sample} PE_READS=\"#{fastq_pe}\" SE_READS=\"#{fastq_se}\" "
       f.write "SURE_POS=#{sure_pos}"
       f.write " TARGET=genome" if genome_flag;
       f.write "\n";
     end
-    
+
   end
-  
 
 end ########## END OF MAIN LOOP ; for sample in libids
+end # end of function
 
 
 
 ########## make run script <auto_run_SUFFIX.sh>
+def make_auto_run_sh_core( path_check, rna_flag)
+  if ! rna_flag
+    return <<EOS
+\tcd $BASE_DIR/$DIR && date >> make.log && (time sh run.sh) >> make.log 2>> make.log
+\tcd $BASE_DIR/ && #{path_check} $DIR >> check_results.log 2>> check_results.log
+EOS
+  else <<EOS
+\tqsub -N RNA-$DIR -o $DIR/make.log -j y /work/HiSeq2000/BaseCall/qsub_rna.sh $DIR
+EOS
+  end
+end
 
-RUN_SCRIPT = File.join( run, "auto_run#{suffix}.sh" )
-File.open( RUN_SCRIPT, 'w+' ) do |f|
-  f.write <<EOS
+def make_auto_run_sh(storage, slide,  group_by_prep,  path_check)
+
+  run_script = File.join( storage, slide, "auto_run.#{Time.now().strftime("%Y%m%d-%H%M%S")}.sh" )
+  File.open( run_script, 'w' ) do |f|
+    f.write <<EOS
 #!/usr/bin/env bash
-
-BASE_DIR=#{OPT[:storage]}
-for DIR in #{ libid_list.map{|s| s + suffix}.join(" ") }
+BASE_DIR=#{File.join(storage,slide)}
+EOS
+    for regex, rows in group_by_prep
+      suffix = $PREP.get_suffix( rows[0].prep_kit )
+      rna_flag = ( rows[0].prep_kit == '_RNA')? true : false
+      f.write <<EOS
+for DIR in #{ rows.map{|e| e.library_id + suffix }.join(" ") }
 do
 echo $DIR
 EOS
-
-  if ! rna_flag
-    f.write <<EOS
-\tcd $BASE_DIR/$DIR && date >> make.log && (time sh run.sh) >> make.log 2>> make.log
-\tcd $BASE_DIR/ && #{OPT[:path_check]} $DIR >> check_results.log 2>> check_results.log
-EOS
-  else
-    f.puts "\tqsub -N RNA-$DIR -o $DIR/make.log -j y /work/HiSeq2000/BaseCall/qsub_rna.sh $DIR"
+      f.puts make_auto_run_sh_core( path_check, rna_flag )
+      f.puts 'done'
+    end
   end
-
-  f.puts 'done'
-  f.puts 'exit 0'
+  return run_script
 end
+

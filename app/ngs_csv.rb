@@ -56,7 +56,7 @@ module NGS
 
   #table of CSV::Rowを受け取り、run_name を返す。同じslideでrun-name矛盾したときのエラー処理等
   def self.get_run_name(rows) 
-    run_names = rows.map{|r| r['run_name'] }
+    run_names = rows.map{|c| c.run_name }
     raise 'multi run_name in rows' unless run_names.uniq.size == 1
     raise 'internal error' if run_names.include? nil
     return run_names[0]

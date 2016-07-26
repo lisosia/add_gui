@@ -15,11 +15,15 @@ class Prepkit
 
   def initialize( prep ) # prep is a array of array
     raise unless prep.is_a? Array and prep[0].is_a? Array
+    raise unless prep.size != HEADS.size
     @prep = prep
     @data = []
     for arr in @prep # arr == [regex, suffix, surepos_filepath, taget_bases]
-      raise 'empty regex in a#{arr}' if arr[0] == ''
-      @data << Col.new( Regexp.new(arr[0]), arr[1], arr[2], arr[3] )
+      elm = Col.new( Regexp.new(arr[0]), arr[1], arr[2], arr[3] )
+      raise 'empty regex in #{arr}' if elm.regex == ''
+      raise "file not found #{elm.surepos}" if  elm.surepos != "" and !File.exists? elm.surepos
+      raise "targetbase is not empty and not number #{elm.target}" unless elm.target.to_s == "" or /\A[0-9]+\z/ =~ elm.target.to_s
+      @data << elm
     end
   end
 
@@ -27,7 +31,7 @@ class Prepkit
     for e in @data
       return e.suffix if e.regex =~ prepkit
     end
-    return  nil
+    return nil
   end
 
   def suffix2targetbases(suffix)
