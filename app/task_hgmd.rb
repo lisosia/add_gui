@@ -5,7 +5,7 @@ require 'yaml'
 module TaskHgmd
   extend MyLog
 
-  @@db_file = $SETTINGS.db_file
+  @@db_file = $SET.db_file
   raise "db_dile entry not exists in config file" if @@db_file.nil?
 
   def self.open_db()
@@ -64,7 +64,7 @@ values( -1, -1, \"NotDone\", '#{create}', '#{uuid}', '#{args.to_s}' )
     `cmd`
   end
 
-  def self.spawn(bashfile, slide, ids , dir = File.join($SETTINGS.storage_root,slide) ) # dir = storage dir
+  def self.spawn(bashfile, slide, ids , dir = File.join($SET.storage_root,slide) ) # dir = storage dir
     time_now = Time.now
     time_str = time_now.strftime("%Y%m%d-%H_%M_%S%Z")
     uuid = time_now.strftime("%Y%m%d-%H_%M_%S%Z") + "--" + SecureRandom.uuid
@@ -81,12 +81,12 @@ values( -1, -1, \"NotDone\", '#{create}', '#{uuid}', '#{args.to_s}' )
 #!/usr/bin/env bash
 set -xv
 bash #{bashfile} #{ args_str }
-sqlite3 -init #{File.join($SETTINGS.root,"etc/set_timeout.sql")} #{@@db_file} 'UPDATE tasks SET status = \"Done\" WHERE uuid = \"#{uuid}\" '
+sqlite3 -init #{File.join($SET.root,"etc/set_timeout.sql")} #{@@db_file} 'UPDATE tasks SET status = \"Done\" WHERE uuid = \"#{uuid}\" '
 exit 0
 EOS
 
     end
-    File.open( File.join($SETTINGS.root, 'log/tasklog'), "a+" ){|f| f.puts "#{args_str}"}
+    File.open( File.join($SET.root, 'log/tasklog'), "a+" ){|f| f.puts "#{args_str}"}
     pid = Process.spawn( "bash ./#{wrap_file} __uuid__=#{uuid}" , :chdir => dir, :pgroup=>nil,
                          [:out,:err]=>[ File.join(dir, wrap_file + '.log') , "w"] )
     set_pid(uuid, pid, Process.pid)
