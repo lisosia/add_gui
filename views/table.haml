@@ -48,9 +48,9 @@
       %tbody
         - for row in rows
           %tr
-            - for cell in row.values_at(* @show_headers)
+            - for cell in @show_headers.map{|h| row.send(h)}
               %td= cell.to_s
-            - lib_id = row.values_at('library_id')[0].to_s
+            - lib_id = row.library_id.to_s
             %td
               %input(type="checkbox" name="check[]" value="#{lib_id}")
             -if check_dir

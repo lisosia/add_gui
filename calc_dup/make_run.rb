@@ -4,7 +4,8 @@ require 'yaml'
 require 'optparse'
 
 require_relative '../app/prepkit.rb'
-PREP = Prepkit.new()
+require_relative '../app/myconfig.rb'
+PREP = Prepkit.new( MyConfig.new().prepkit_info )
 
 ############### get args, todo: prefer _ than - in log opt
 
@@ -49,8 +50,8 @@ for sample in libid_list
   genome_flag , genome = true, 'genome' if suffix == '_WG'
   genome = 'rna' if rna_flag
 
-  RUN_PE , RUN_DIR_PE = [] , []
-  RUN_SE , RUN_DIR_SE = [] , []
+  run_pe , run_dir_pe = [] , []
+  run_se , run_dir_se = [] , []
   
   ############### loop to push elements to RUN[_DIR]_[PS]E
   RUN_DIR.each_with_index do |dir, i|
@@ -61,32 +62,32 @@ for sample in libid_list
         next
       end
       if RUN_NO[i].match /^PE/
-        RUN_PE << RUN_NO[i]
-        RUN_DIR_PE << direc
+        run_pe << RUN_NO[i]
+        run_dir_pe << direc
       else
-        RUN_SE << RUN_NO[i]
-        RUN_DIR_SE << direc
+        run_se << RUN_NO[i]
+        run_dir_se << direc
       end
     end
   end
   
   ### !!! ###
   sample += suffix
-    
-  FASTQ_DIR = File.join( run, sample, genome, 'fastq' )
+
+  FASTQ_DIR ||= File.join( run, sample, genome, 'fastq' )
   # `` system call -- exit if fail 
   # system() -- exit ruby proess if fail
   `mkdir -p #{FASTQ_DIR}`
   
   fastq_pe = []
-  ############### RUN_PE loop to make fastq_pe
-  for pe, pe_dir in RUN_PE.zip(RUN_DIR_PE)
+  ############### run_pe loop to make fastq_pe
+  for pe, pe_dir in run_pe.zip(run_dir_pe)
     for fst in Dir.glob( File.join( pe_dir, "*.fastq.gz" ) )
       temp = File.basename( fst ).split("_")
       temp[4].gsub! /R/, ''
       temp[5].gsub! /.fastq.gz/, ''
       file_base = "#{sample}.#{pe}.#{temp[3]}_#{temp[5]}_#{temp[4]}"
-      
+
       cmd = "ln -s #{fst} #{FASTQ_DIR}/#{file_base}.fastq.gz"
       # print cmd
       `#{cmd}`
@@ -101,8 +102,8 @@ for sample in libid_list
   fastq_pe = fastq_pe.join(" ")
 
   fastq_se = []
-  ############### RUN_SE loop to make fastq_se
-  for se, se_dir in RUN_SE.zip(RUN_DIR_SE)
+  ############### run_se loop to make fastq_se
+  for se, se_dir in run_se.zip(run_dir_se)
     for fst in Dir.glob( File.join( se_dir, "*_R1_*.fastq.gz" ) )
       temp = File.basename( fst ).split("_")
       temp[4].gsub! /R/, ''

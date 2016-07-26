@@ -4,35 +4,39 @@ class UnknownPrepkitError < StandardError
   attr_reader :prepkit
   def initialize(prepkit)
     @message = prepkit
-  end  
+  end
 end
 
 class Prepkit
   attr_accessor :suf_sure, :file, :data, :prep ,:data
-  def initialize(file = File.join( File.dirname(__FILE__), '../config.yml') )
-    @file = file
-    @prep = YAML.load_file( file )['prepkit_info']
+
+  HEADS = %i{regex suffix surepos target}
+  Col = Struct.new("PrepCol", * HEADS)
+
+  def initialize( prep ) # prep is a array of array
+    raise unless prep.is_a? Array and prep[0].is_a? Array
+    @prep = prep
     @data = []
     for arr in @prep # arr == [regex, suffix, surepos_filepath, taget_bases]
       raise 'empty regex in a#{arr}' if arr[0] == ''
-      @data << [ Regexp.new(arr[0]), arr[1], arr[2], arr[3] ]
+      @data << Col.new( Regexp.new(arr[0]), arr[1], arr[2], arr[3] )
     end
   end
 
   def get_suffix( prepkit )
-    for arr in @data
-      return arr[1] if arr[0] === prepkit
+    for e in @data
+      return e.suffix if e.regex =~ prepkit
     end
     return  nil
   end
 
   def suffix2targetbases(suffix)
-    @suf_base ||= @prep.map{ |a| [a[1],a[3]] }.reject{|suf,_| suf == '' }
+    @suf_base ||= @data.reject{|e| e.suffix == ""}.map{ |e| [e.suffix,e.target] }
     for suf, base in @suf_base
       raise "invalid target base: #{base}" unless base=='' or  base.is_a?(Integer) or /\A[0-9]+\z/.match(base)
       if suffix.match /#{suf}/
         return nil if base == ''
-        return base 
+        return base
       end
     end
 
@@ -41,12 +45,12 @@ class Prepkit
   end
 
   def suffix2sure_pos(suffix)
-    @suf_sure ||= @prep.map{  |a| [a[1],a[2]] }.reject{|suf,_| suf == '' }
+    @suf_sure ||= @data.reject{|e| e.suffix == ""}.map{|e| [e.suffix,e.surepos ] }
     for suf, sure in @suf_sure
       raise "file not found: #{sure}" unless sure=='' or File.exists?( sure )
       if suffix.match /#{suf}/
         return nil if sure == ''
-        return sure 
+        return sure
       end
     end
     STDERR.puts 'unknown suffix #{suffix}'
@@ -55,7 +59,7 @@ class Prepkit
 
 end
 
-# old
+# old; depricated
 def get_suffix_old(prep_kit)
   case prep_kit
   # when /^N.A./ then return ''
@@ -72,7 +76,7 @@ def get_suffix_old(prep_kit)
   else
     STDERR.puts "WARNING Uninitilalized value; #{prep_kit}"
     return [nil,  prep_kit ]
-  end  
+  end
 end
 
 if __FILE__ == $0
@@ -84,7 +88,7 @@ if __FILE__ == $0
   c = Prepkit.new()
   p c.get_suffix( 'Agilent SureSelect v5 adsa' )
   p c.get_suffix( 'Agilent SureSelect v6+UTR 21adsa' )
-  
+
   p '---'
   p c.suffix2surepos '_WG'
   p c.suffix2targetbases '_WG'

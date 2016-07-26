@@ -16,18 +16,18 @@ config_path = File.join( File.dirname(__FILE__), '../config.yml' )
 verify_config( config_path )
 
 require_relative './prepkit.rb'
-PREP = Prepkit.new()
-
 require_relative 'myconfig.rb'
-$SETTINGS = MyConfig.new( config_path )
+$SETTINGS = MyConfig.new() # laod config.yml
+PREP = Prepkit.new( $SETTINGS.prepkit_info )
+
 require_relative "./init.rb"
-include MyLog
 
 rack_logger = Logger.new('./log/app.log')
 
 configure do
   use Rack::CommonLogger, rack_logger
 end
+mylog.info "start app"
 
 before do
   unless File.exists? $SETTINGS.storage_root
@@ -42,9 +42,9 @@ get '/' do
     min , max = @params[:range].split('-').map{|v| v.chomp.to_i}
     @filtered_table = slide_filtered_table(@table, min, max)
   elsif @params[:range] == 'others'
-    @filtered_table = @table.group_by{|r| r.values_at('slide').first}.reject{|slide,arr| /\A[-+]?[0-9]+\z/ === slide }
+    @filtered_table = @table.group_by(&:slide).reject{|slide,arr| /\A[-+]?[0-9]+\z/ === slide }
   else
-    @filtered_table = @table.group_by{|r| r.values_at('slide').first}
+    @filtered_table = @table.group_by(&:slide)
   end
   @show_headers = ['slide', 'run_name', 'application', 'library_id', 'prep_kit']
 
@@ -52,15 +52,15 @@ get '/' do
 end
 
 def slide_filtered_table(table, min, max, include_not_num = false)
-  table.group_by{|r| r.values_at('slide').first}.select{|k,v| (include_not_num and !( /\A[-+]?[0-9]+\z/ === k) ) or (k.to_i <= max and k.to_i >= min ) }
+  table.group_by(&:slide).select{|k,v| (include_not_num and !( /\A[-+]?[0-9]+\z/ === k) ) or (k.to_i <= max and k.to_i >= min ) }
 end
 
 post '/' do
   slide = @params[:slide]
 
   return "empty post; please return to previous page" if @params[:check].nil?
-  rows = @table.select{|r| r['slide'] == slide}
-  library_ids_checked = params[:check].map{ |lib_id| @table.select{|r| r['library_id'] == lib_id}[0] }
+  rows = @table.select{|c| c.slide == slide}
+  library_ids_checked = params[:check].map{ |lib_id| @table.select{|c| c.library_id == lib_id}[0] }
   mylog.info 'post / called. slide=#{slide}; checked_ids=#{library_ids_checked}'
   raise "internal eoor; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
 
@@ -176,7 +176,7 @@ end
 
 # to avoid uncaught throw <- cannot catch error over threads
 def validate_prepkit(checked)
-  checked.group_by{|r| r['prep_kit']}.each do |prep, row| 
+  checked.group_by(&:prep_kit).each do |prep, row|
     ok = PREP.get_suffix( prep )
     return [false, prep ] unless ok
   end
@@ -185,20 +185,23 @@ end
 
 # - checked - Array of CSV::Row
 def prepare(slide, checked)
-  raise 'internal_error' unless ( checked.is_a? Array and checked[0].is_a? CSV::Row)
+  raise 'internal_error' unless ( checked.is_a? Array and checked[0].is_a? NGS::Col)
 
-  checked.group_by{|r| r['prep_kit']}.each do |prep, row| 
+  group = checked.group_by do |col|
+    PREP.data.map(&:regex).find{ |reg| reg =~ col.prep_kit }
+  end
+  group.each do |regex, row|
     prepare_same_suffix(slide, row)
   end
   return nil
 end
 
 def prepare_same_suffix(slide, checked)
-  mylog.info "prepare_same_suffix called; #{slide}, #{checked}"
+  mylog.info "prepare_same_suffix called; slide=#{slide} / #{checked.map(&:to_s)}"
   # get run-name from NGS-file
-  prep_kits = checked.map{|r| r['prep_kit'] }
 
-  raise 'internal_error' unless prep_kits.uniq.size == 1
+  prep_kits = checked.map(&:prep_kit)
+  mylog.warn "same regex, but slightly different prep_kits: #{prep_kits}" unless prep_kits.uniq.size == 1
   suffix = PREP.get_suffix( prep_kits[0] )
   raise 'err' unless suffix
 
@@ -206,10 +209,10 @@ def prepare_same_suffix(slide, checked)
   ids = checked.map{|r| r['library_id']}
   storage = File.join( $SETTINGS.storage_root, slide)
 
-  cmd = <<-EOS
+  cmd = <<EOS
   ruby #{$SETTINGS.root}/calc_dup/make_run.rb --run #{slide} --run-name #{run_name} --suffix #{suffix} --library-ids #{ids.join(',')} --storage #{storage} --path-check-result #{$SETTINGS.root}/calc_dup/check_results.rb --path-makefile #{$SETTINGS.makefile_path}
-        EOS
-  
+EOS
+
   Dir.chdir($SETTINGS.storage_root){
     File.open("./#{slide}.make_run.rb.log", 'w') {|f| f.write(cmd) }
     `#{cmd}`
