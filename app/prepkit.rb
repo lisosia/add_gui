@@ -10,7 +10,7 @@ end
 class Prepkit
   attr_accessor :suf_sure, :file, :data, :prep ,:data
 
-  HEADS = %i{regex suffix surepos target}
+  HEADS = %w{regex suffix surepos target}.map(&:to_sym)
   Col = Struct.new("PrepCol", * HEADS)
 
   def initialize( prep ) # prep is a array of array

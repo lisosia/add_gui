@@ -3,7 +3,7 @@
 require 'csv'
 
 module NGS
-  HEADERS = %i{slide run_name application cluster_kit seq_kit hcs flowsell place place_id center_id library_id repli-g lane input density barcode disease note prep_kit prep_start seq_start seq_end 情報解析依頼 データ返却 担当 共有同意 snp_chip 解析状況 目的 施設}
+  HEADERS = %w{slide run_name application cluster_kit seq_kit hcs flowsell place place_id center_id library_id repli-g lane input density barcode disease note prep_kit prep_start seq_start seq_end 情報解析依頼 データ返却 担当 共有同意 snp_chip 解析状況 目的 施設}.map(&:to_sym)
   Col = Struct.new("NgsCol", * HEADERS) do
     def to_s
       "NGS::Col<#{slide},#{run_name},#{library_id},#{prep_kit}>"
@@ -12,7 +12,7 @@ module NGS
 
   def self.readCSV(data)
     ret = []
-    table = CSV.read(data, skip_blanks: true, skip_lines: /\A#/) # array of array
+    table = CSV.read(data, skip_blanks: true) # array of array # , skip_lines: /\A#/ // skip_lines optoin available at ruby >= 2.0
     # slide またいだときの処理も別に考えた方がよいかも
     forwarding_headers = [0,1,2]
     last_headers = Array.new( forwarding_headers.size, nil )

@@ -23,6 +23,9 @@ require_relative "./init.rb"
 rack_logger = Logger.new('./log/app.log')
 
 configure do
+  set :rows, NGS::readCSV( $SET.ngs_file)
+  raise if settings.rows.nil?
+  set :rows_group, settings.rows.group_by(&:slide)
   use Rack::CommonLogger, rack_logger
 end
 mylog.info "start app"
@@ -31,21 +34,26 @@ before do
   unless File.exists? $SET.storage_root
     raise "invalid storage_root path<#{$SET.storage_root}> specified in configfile<#{config_path}>"
   end
-  @table = NGS::readCSV( $SET.ngs_file )
-  @show_headers = ['slide', 'run_name', 'application', 'library_id']
+  settings.rows = NGS::readCSV( $SET.ngs_file )
+  @show_headers = ['slide', 'run_name', 'application', 'library_id', 'prep_kit']
 end
 
 get '/' do
+  @table = settings.rows_group
+  haml :index
+end
+
+get '/table' do
   if @params[:range] and /\A[0-9]+-[0-9]+/ === @params[:range]
     min , max = @params[:range].split('-').map{|v| v.chomp.to_i}
-    @filtered_table = slide_filtered_table(@table, min, max)
+    @filtered_table = slide_filtered_table(settings.rows, min, max)
   elsif @params[:range] == 'others'
-    @filtered_table = @table.group_by(&:slide).reject{|slide,arr| /\A[-+]?[0-9]+\z/ === slide }
+    @filtered_table = settings.rows.group_by(&:slide).reject{|slide,arr| /\A[-+]?[0-9]+\z/ === slide }
   else
-    @filtered_table = @table.group_by(&:slide)
+    @filtered_table = settings.rows.group_by(&:slide)
   end
   @show_headers = ['slide', 'run_name', 'application', 'library_id', 'prep_kit']
-
+  @table = settings.rows
   haml :table, :locals => {:check_dir => @params[:check_dir]}
 end
 
@@ -53,12 +61,21 @@ def slide_filtered_table(table, min, max, include_not_num = false)
   table.group_by(&:slide).select{|k,v| (include_not_num and !( /\A[-+]?[0-9]+\z/ === k) ) or (k.to_i <= max and k.to_i >= min ) }
 end
 
+get '/form/:slide' do
+  slide = @params[:slide]
+  raise if slide.nil?
+  rows = settings.rows_group[slide]
+  raise 'internal error; #{slide} not found in ngs' if rows.nil?
+  haml :form, :locals => { :slide => slide, :rows =>rows }
+end
+
 post '/' do
   slide = @params[:slide]
 
   return "empty post; please return to previous page" if @params[:check].nil?
-  rows = @table.select{|c| c.slide == slide}
-  library_ids_checked = params[:check].map{ |lib_id| @table.select{|c| c.library_id == lib_id}[0] }
+  rows = settings.rows.select{|c| c.slide == slide}
+  library_ids_checked = params[:check].map{ |lib_id| settings.rows.select{|c| c.library_id == lib_id}[0] }
+  return "Error; you checked sample(s) that already has sample dir " if library_ids_checked.any?{|c| dir_exists_col? c}
   mylog.info 'post / called. slide=#{slide}; checked_ids=#{library_ids_checked}'
   raise "internal eoor; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
 
@@ -168,8 +185,15 @@ end
 
 def dir_exists?(slide, library_id, prep_kit)
   raise "args include nil" if slide.nil? or library_id.nil?
-  p = File.join( $SET.storage_root, slide, library_id, $PREP.get_suffix(prep_kit) )
+  suffix = $PREP.get_suffix(prep_kit).to_s
+  p = File.join( $SET.storage_root, slide, library_id + suffix )
   File.exists? p
+end
+def dir_exists_col?(c)
+  raise unless c.is_a? NGS::Col
+  suffix = $PREP.get_suffix( c.prep_kit ).to_s
+  f = File.join( $SET.storage_root, c.slide, c.library_id + suffix )
+  File.exists? f
 end
 
 # to avoid uncaught throw <- cannot catch error over threads

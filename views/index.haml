@@ -1,1 +1,16 @@
-%p= "Hello world, it's #{Time.now} at the server!"
+%table(border=1)
+  %tr
+    %th slide
+    %th # of samples
+    %th prep_kit(s)
+
+  - for slide, rows in @table
+    %tr
+      %td
+        %a(href="/form/#{slide}")= slide
+      %td
+        %span #{rows.size}
+      %td
+        %span #{rows.map(&:prep_kit).uniq.map(&:inspect).sort.join("<font color='red'> / </font>")}
+-#  - for c in rows
+-#  %div= c

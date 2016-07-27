@@ -1,0 +1,59 @@
+:javascript
+  function toggleBox(form, v){
+    var f = document.forms[form];
+    for(var i=0;i < f.length; i++){
+      if(f.elements[i].disabled && v=='checked'){continue;}
+      console.log( f.elements[i].exists )
+      f.elements[i].checked = v;
+    }
+  }
+
+:javascript
+  function submitCheck(){
+    if(window.confirm( 'launch task? (links appear on the right of the send-button if task was launched before)' )){
+      return true;
+    }else{
+      window.alert('cancelled');
+      return false;
+    }
+  }
+
+
+%p= "slide ===#{slide}==="
+%form(action="/" method="post" name="form-#{slide}" onSubmit="return submitCheck()")
+  -if dir_slide_exist? slide
+    %div slide's directory exist;
+    %a(href = "/progress/#{slide}") progress()
+    %a(href = "/graph/#{slide}") graph(if work done)
+  <br/>
+  <br/>
+  %input(type="hidden" name="slide" value="#{slide}")
+  %input(type="submit" value="Send  slide:#{slide}" class="button")
+  %input(type="button" value='selectAll' onclick="toggleBox(  'form-#{slide}', 'checked') " )
+  %input(type="button" value='selectNone' onclick="toggleBox( 'form-#{slide}', '')" )    
+   
+
+  %table(border="1")
+    %thread
+      %tr
+        - for header in @show_headers
+          %th= header.to_s
+        %th box
+        %th dir_exists?
+    %tbody
+      - for row in rows
+        %tr
+          - for cell in @show_headers.map{|h| row.send(h)}
+            %td= cell.to_s
+          - lib_id = row.library_id.to_s
+          - ex = dir_exists?(slide, lib_id, row.prep_kit )
+
+          - if ex
+            %td
+              %input(type="checkbox" name="check[]" value="#{lib_id}" disabled )
+          - else
+            %td
+              %input(type="checkbox" name="check[]" value="#{lib_id}" )
+
+          %td
+            #exist= ex ? 'exists' : '___no___'

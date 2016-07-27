@@ -1,6 +1,6 @@
 require "yaml"
 
-REQ = %i{root storage_root ngs_file db_file makefile_path prepkit_info}
+REQ = %w{root storage_root ngs_file db_file makefile_path prepkit_info}.map(&:to_sym)
 FILES_INDEX = [0,1,2,3,4]
 
 MyConfig = Struct.new("MyConfig", * REQ)

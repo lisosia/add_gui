@@ -157,7 +157,7 @@ def make_auto_run_sh_core( path_check, rna_flag)
   if ! rna_flag
     return <<EOS
 \tcd $BASE_DIR/$DIR && date >> make.log && (time sh run.sh) >> make.log 2>> make.log
-\tcd $BASE_DIR/ && #{path_check} $DIR >> check_results.log 2>> check_results.log
+\tcd $BASE_DIR/ && ruby -W0 #{path_check} $DIR >> check_results.log 2>> check_results.log
 EOS
   else <<EOS
 \tqsub -N RNA-$DIR -o $DIR/make.log -j y /work/HiSeq2000/BaseCall/qsub_rna.sh $DIR
