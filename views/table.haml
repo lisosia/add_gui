@@ -52,7 +52,7 @@
               %td= cell.to_s
             - lib_id = row.library_id.to_s
             %td
-              %input(type="checkbox" name="check[]" value="#{lib_id}")
+-#              %input(type="checkbox" name="check[]" value="#{lib_id}")
             -if check_dir
               %td
                 #exist= dir_exists?(slide, lib_id, row.values_at('prep_lit') ) 
