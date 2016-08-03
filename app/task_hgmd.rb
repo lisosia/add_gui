@@ -63,32 +63,32 @@ values( -1, -1, \"NotDone\", '#{create}', '#{uuid}', '#{args.to_s}' )
     EOS
     `cmd`
   end
-
+  def self.get_uuid(time)
+    return ( time.strftime("%Y%m%d-%H%M%S") + "--" + SecureRandom.uuid )
+  end
+  # bashfile must be fullpath
   def self.spawn( slide, ids , bashfile, dir = File.join($SET.storage_root,slide) )
     time_now = Time.now
     time_str = time_now.strftime("%Y%m%d-%H_%M_%S%Z")
-    uuid = time_now.strftime("%Y%m%d-%H%M%S") + "--" + SecureRandom.uuid
+    uuid = get_uuid(time_now)
 
     init_db()
     args_str = [slide ,ids.join(',')].join(" ")
     add_task(uuid,time_str, args_str)
+    File.open( File.join($SET.root, 'log/tasklog'), "a+" ){|f| f.puts "#{args_str}"}
 
     # http://dba.stackexchange.com/questions/47919/how-do-i-specify-a-timeout-in-sqlite3-from-the-command-line
     `mkdir -p #{dir}`
-    wrap_file = 'auto_run_wrapper.sh'
-    File.open( File.join(dir, wrap_file) , 'w+') do |f|
+    File.open( bashfile , 'a') do |f|
       f.write <<EOS
-#!/usr/bin/env bash
-set -xv
-bash #{bashfile} #{ args_str }
+### added by task_hgmd.rb
 sqlite3 -init #{File.join($SET.root,"etc/set_timeout.sql")} #{@@db_file} 'UPDATE tasks SET status = \"Done\" WHERE uuid = \"#{uuid}\" '
 exit 0
 EOS
 
     end
-    File.open( File.join($SET.root, 'log/tasklog'), "a+" ){|f| f.puts "#{args_str}"}
-    pid = Process.spawn( "bash ./#{wrap_file} __uuid__=#{uuid}" , :chdir => dir, :pgroup=>nil,
-                         [:out,:err]=>[ File.join(dir, wrap_file + '.log') , "w"] )
+    pid = Process.spawn( "bash #{bashfile} __uuid__=#{uuid}" , :chdir => dir, :pgroup=>nil,
+                         [:out,:err]=>[ bashfile + '.log' , "w"] )
     set_pid(uuid, pid, Process.pid)
     Process.detach pid
     return pid

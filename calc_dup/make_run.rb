@@ -36,7 +36,7 @@ path_makefile = OPT[:path_makefile]
 storage = OPT[:storage]
 path_check = OPT[:path_check]
 
-make_run_sh(run, run_name, suffix, libid_list, path_makefile, storage, path_check)
+make_run_sh(run, run_name, suffix, libid_list, storage, path_makefile, path_check)
 end
 
 def make_run_sh(run, run_name, suffix, libid_list, storage, path_makefile, path_check)
@@ -84,7 +84,7 @@ for sample in libid_list
   ### !!! ###
   sample += suffix
 
-  fastq_dir ||= File.join( run, sample, genome, 'fastq' )
+  fastq_dir ||= File.join( storage, run, sample, genome, 'fastq' )
   # `` system call -- exit if fail 
   # system() -- exit ruby proess if fail
   `mkdir -p #{fastq_dir}`

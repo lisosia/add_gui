@@ -1,0 +1,14 @@
+#!/usr/bin/env ruby
+
+if ARGV.size != 1
+  STDERR.puts 'USAGE: pspgid pgid'
+  exit 1
+end
+unless /[1-9][0-9]*/ =~ ARGV[0]
+  STDERR.puts "#{ARGV[0]} is not int"
+  exit 1
+end
+
+id = ARGV[0].to_i
+
+print `ps axo pid,pgid | grep #{id} | grep -v 'grep' | xargs ps o pid,ppid,pgid,command`

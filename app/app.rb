@@ -43,6 +43,10 @@ get '/' do
   haml :index
 end
 
+get '/running' do
+  `#{$SET.root}/etc/psppid #{Process.pid}`.split("\n").select{|e| /auto_run/ =~ e}.join('<br/>')
+end
+
 get '/table' do
   if @params[:range] and /\A[0-9]+-[0-9]+/ === @params[:range]
     min , max = @params[:range].split('-').map{|v| v.chomp.to_i}
@@ -222,7 +226,7 @@ def prepare(slide, checked)
     run_name = NGS::get_run_name(rows)
     ids = rows.map(&:library_id) # must be one
     suffix = $PREP.get_suffix( rows.first.prep_kit )
-    make_run_sh(slide, run_name, suffix, ids, $SET.storage_root, path_check, $SET.makefile_path )
+    make_run_sh(slide, run_name, suffix, ids, $SET.storage_root, $SET.makefile_path, path_check )
   end
 
   # make auto_run.sh
