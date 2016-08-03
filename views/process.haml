@@ -11,11 +11,11 @@
         %tr
           - task.each_with_index do |col, i|
             - next unless (head_show.include? i)
-            %td= col.to_s
+            %td= col[1].to_s
           %td
-            %a(href = "/progress/#{task[headers.find_index("args")].split[0]}") progress
+            %a(href = "/progress/#{task[:args].split[0]}") progress
           %td
-            ="ps axo pid,ppid,pgid,command #{task[headers.find_index("pid")]} |grep '__uuid__=#{task[headers.find_index("uuid")]}' |grep -v 'grep'"
+            ="ps axo pid,ppid,pgid,command #{task[:pid]} |grep '__uuid__=#{task[:uuid]}' |grep -v 'grep'"
 
 <br/>
 - for i in 0.upto (count / step)

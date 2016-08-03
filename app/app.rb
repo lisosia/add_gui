@@ -131,7 +131,7 @@ get '/process' do
   headers =   %w(pid ppid status createat args uuid)
   head_show =   [0,  1,   2,     3,       4]
   tasks = TaskHgmd.run_sql("select #{headers.join(',')} from tasks order by uuid desc limit #{step} OFFSET #{offset}")
-  count = TaskHgmd.run_sql("select COUNT(pid) from tasks").flatten[0]
+  count = TaskHgmd.run_sql("select COUNT(pid) from tasks").count
   # tasks.map{|e| e.inspect}.join("<br>")
 
   haml :process ,:locals=>{:tasks => tasks, :step => step, :count => count, :headers => headers, :head_show => head_show}

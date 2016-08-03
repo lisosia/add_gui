@@ -12,3 +12,4 @@ gem 'thin'
 
 gem 'pry'
 gem 'sqlite3'
+gem 'sequel'

@@ -1,28 +1,21 @@
 require 'sqlite3'
 require 'securerandom'
 require 'yaml'
+require 'sequel'
 
 module TaskHgmd
   extend MyLog
 
   @@db_file = $SET.db_file
   raise "db_dile entry not exists in config file" if @@db_file.nil?
+  @@db = Sequel.sqlite( @@db_file )
+  # @@db.run '.timeout 3000;'
 
-  def self.open_db()
-    db = SQLite3::Database.open(@@db_file)
-    db.busy_timeout 3000
-    return db
-  end
-
-  def self.run_sql(sql)
-    db = open_db
-    ret = db.execute(sql)
-    db.close
-    return ret
-  end
+  @@tasks = @@db[:tasks]
+  @@tasks.where(:status => 'NotDone' ).update(:status => 'Error' )
 
   def self.init_db()
-    sql = <<-EOS
+    @@db.run <<-EOS
 create table if not exists tasks(
 pid int not null,
 ppid int not null,
@@ -32,30 +25,22 @@ uuid string not null,
 args string
     )
     EOS
-    db = open_db()
-    db.execute sql
-    db.close()
+  end
+
+  def self.run_sql(str)
+    return @@db[str]
   end
 
   def self.add_task(uuid, create, args )
-    db = open_db
-    db.execute <<-EOS
-insert into tasks(pid,ppid, status, createat, uuid, args)
-values( -1, -1, \"NotDone\", '#{create}', '#{uuid}', '#{args.to_s}' )
-    EOS
-    db.close
+    @@tasks.insert( {:pid => -1, :ppid => -1, :status => "NotDone", :createat => create, :uuid => uuid, :args => args.to_s} )
   end
 
   def self.set_pid(uuid, pid, ppid)
-    db = open_db
-    db.execute "update tasks set pid = \"#{pid}\", ppid = \"#{ppid}\" where uuid = \"#{uuid}\" "
-    db.close
+    @@tasks.where( :uuid => uuid ).update( {:pid => pid, :ppid => ppid } )
   end
 
   def self.done_task(uuid)
-    db = open_db
-    db.execute "UPDATE tasks SET status = \"Done\" WHERE uuid = \"#{uuid}\" "
-    db.close
+    @@tasks.where( :uuid => uuid ).update( :status => 'Done' )
   end
   def self.done_task_bash(uuid)
     cmd = <<-EOS
@@ -63,6 +48,7 @@ values( -1, -1, \"NotDone\", '#{create}', '#{uuid}', '#{args.to_s}' )
     EOS
     `cmd`
   end
+
   def self.get_uuid(time)
     return ( time.strftime("%Y%m%d-%H%M%S") + "--" + SecureRandom.uuid )
   end
