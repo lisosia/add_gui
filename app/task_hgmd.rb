@@ -26,6 +26,9 @@ args string
     )
     EOS
   end
+  def self.tasks()
+    @@tasks
+  end
 
   def self.run_sql(str)
     return @@db[str]
