@@ -17,13 +17,16 @@ module NGS
     forwarding_headers = [0,1,2]
     last_headers = Array.new( forwarding_headers.size, nil )
     table.each do |r|
+      unless r[0].nil? # now, new slide , then remove forwarding cache
+        last_headers = Array.new( forwarding_headers.size, nil )
+      end
       if HEADERS.size != r.size
         raise "NGS csv file format error: incorrect col size(#{r.size}) VS specified(#{Headers.size});" + "\n" + r.inspect()
       end
       # 空の場合、前列の要素を引き継ぐ
       for hi in forwarding_headers do
         if r[hi].nil?
-          raise "cannot forwardably resolve colum:#{HEADERS[hi]}; at line#{r}" if last_headers[hi].nil?
+          STDERR.puts "cannot forwardably resolve colum:#{HEADERS[hi]}; at line#{r}" if last_headers[hi].nil?
           r[hi] = last_headers[hi]
         else
           last_headers[hi] = r[hi]
@@ -58,7 +61,7 @@ module NGS
   def self.get_run_name(rows) 
     run_names = rows.map{|c| c.run_name }
     raise 'multi run_name in rows' unless run_names.uniq.size == 1
-    raise 'internal error' if run_names.include? nil
+    raise 'some samples\'s run_name (in NGS file) is empty(nil)' if run_names.include? nil
     return run_names[0]
   end
 

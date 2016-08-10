@@ -88,7 +88,12 @@ post '/' do
     return haml( :error, :locals => { :unknown_prepkit => prepkit } )
   end
 
-  prepare(slide, library_ids_checked )
+  begin 
+    prepare(slide, library_ids_checked )
+  rescue => e
+    STDERR.puts e.inspect
+    return "<textarea cols='80'> #{e.inspect.to_s} </textarea> <br> check NGS file #{$SET.ngs_file} "
+  end
 
   redirect to('/process')
 end
@@ -226,6 +231,7 @@ def prepare(slide, checked)
     run_name = NGS::get_run_name(rows)
     ids = rows.map(&:library_id) # must be one
     suffix = $PREP.get_suffix( rows.first.prep_kit )
+
     make_run_sh(slide, run_name, suffix, ids, $SET.storage_root, $SET.makefile_path, path_check )
   end
 
