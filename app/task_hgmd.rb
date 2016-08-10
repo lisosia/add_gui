@@ -2,6 +2,7 @@ require 'sqlite3'
 require 'securerandom'
 require 'yaml'
 require 'sequel'
+require_relative './ps_wrap.rb'
 
 module TaskHgmd
   extend MyLog
@@ -12,6 +13,15 @@ module TaskHgmd
   # @@db.run '.timeout 3000;'
 
   @@tasks = @@db[:tasks]
+  @@tasks.where(:status => 'NotDone').each do |col|
+    pgid = col[:pid].to_s # Process.spawn( pgroup => true )
+    if PsWrap.command(/auto_run/).select{|e| e.pid == pgid }.count > 0 and PsWrap.all().select{|e| e.pgid == pgid }.size > 0
+      STDERR.puts "Error; Not finished task(pgid=#{pgid});"
+      STDERR.puts "$ kill -TERM -#{pgid}"
+      STDERR.puts "to kill all processes which has pgid=#{pgid}"
+      exit(1)
+    end
+  end
   @@tasks.where(:status => 'NotDone' ).update(:status => 'Error' )
 
   def self.init_db()
@@ -76,7 +86,7 @@ exit 0
 EOS
 
     end
-    pid = Process.spawn( "bash #{bashfile} __uuid__=#{uuid}" , :chdir => dir, :pgroup=>nil,
+    pid = Process.spawn( "bash #{bashfile} __uuid__=#{uuid}" , :chdir => dir, :pgroup=>true,
                          [:out,:err]=>[ bashfile + '.log' , "w"] )
     set_pid(uuid, pid, Process.pid)
     Process.detach pid

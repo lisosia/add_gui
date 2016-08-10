@@ -26,7 +26,7 @@ module NGS
       # 空の場合、前列の要素を引き継ぐ
       for hi in forwarding_headers do
         if r[hi].nil?
-          STDERR.puts "cannot forwardably resolve colum:#{HEADERS[hi]}; at line#{r}" if last_headers[hi].nil?
+          # STDERR.puts "cannot forwardably resolve colum:#{HEADERS[hi]}; at line#{r}" if last_headers[hi].nil?
           r[hi] = last_headers[hi]
         else
           last_headers[hi] = r[hi]

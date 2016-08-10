@@ -27,14 +27,16 @@ configure do
   raise if settings.rows.nil?
   set :rows_group, settings.rows.group_by(&:slide)
   use Rack::CommonLogger, rack_logger
-end
-mylog.info "start app"
 
-before do
   unless File.exists? $SET.storage_root
     raise "invalid storage_root path<#{$SET.storage_root}> specified in configfile<#{config_path}>"
   end
   settings.rows = NGS::readCSV( $SET.ngs_file )
+
+end
+mylog.info "start app"
+
+before do
   @show_headers = ['slide', 'run_name', 'application', 'library_id', 'prep_kit']
 end
 
@@ -44,7 +46,25 @@ get '/' do
 end
 
 get '/running' do
-  `#{$SET.root}/etc/psppid #{Process.pid}`.split("\n").select{|e| /auto_run/ =~ e}.join('<br/>')
+  
+  auto_runs = PsWrap.command /auto_run/
+  notdone = TaskHgmd.tasks.where( :status => "NotDone")
+  data = notdone.map do |col|
+    corresp = auto_runs.find do |proc| 
+      col[:pid] == proc.pid.to_i and /#{col[:uuid]}/ =~ proc.command
+    end
+    [col, corresp]
+  end
+  haml :running, :locals => {:data => data }
+end
+
+post '/kill/:pid' do
+  pid = @params[:pid]
+  raise 'internal error' unless /[1-9][0-9]*/ =~ pid
+  raise 'not positive pid' unless pid.to_i > 0
+  `kill -TERM -#{pid}` # kill all process groups
+  sleep 1
+  redirect to('/running')
 end
 
 get '/table' do
@@ -78,7 +98,7 @@ post '/' do
 
   return "empty post; please return to previous page" if @params[:check].nil?
   rows = settings.rows.select{|c| c.slide == slide}
-  library_ids_checked = params[:check].map{ |lib_id| settings.rows.select{|c| c.library_id == lib_id}[0] }
+  library_ids_checked = params[:check].map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
   return "Error; you checked sample(s) that already has sample dir " if library_ids_checked.any?{|c| dir_exists_col? c}
   mylog.info 'post / called. slide=#{slide}; checked_ids=#{library_ids_checked}'
   raise "internal eoor; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
