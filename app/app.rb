@@ -51,7 +51,6 @@ post '/reload' do
 
   load "task_hgmd.rb"
   TaskHgmd.init_db()
-
   redirect back
 end
 
