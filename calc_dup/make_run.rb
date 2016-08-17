@@ -84,7 +84,7 @@ for sample in libid_list
   ### !!! ###
   sample += suffix
 
-  fastq_dir ||= File.join( storage, run, sample, genome, 'fastq' )
+  fastq_dir = File.join( storage, run, sample, genome, 'fastq' )
   # `` system call -- exit if fail 
   # system() -- exit ruby proess if fail
   `mkdir -p #{fastq_dir}`
@@ -99,7 +99,7 @@ for sample in libid_list
       file_base = "#{sample}.#{pe}.#{temp[3]}_#{temp[5]}_#{temp[4]}"
 
       cmd = "ln -s #{fst} #{fastq_dir}/#{file_base}.fastq.gz"
-      # print cmd
+      STDERR.puts cmd
       `#{cmd}`
 
       if temp[4] == '1'
