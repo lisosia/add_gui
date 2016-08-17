@@ -11,10 +11,3 @@ require 'sqlite3'
 
 `mkdir -p tmp`
 
-require_relative "./log.rb"
-include MyLog
-require_relative "./ngs_csv.rb"
-require_relative "./task_hgmd.rb"
-TaskHgmd.init_db()
-
-require_relative './ps_wrap.rb'

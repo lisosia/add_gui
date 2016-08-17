@@ -17,22 +17,25 @@ require_relative './prepkit.rb'
 require_relative './config.rb'
 $SET = load_config() # laod config.yml
 $PREP = Prepkit.new( $SET.prepkit_info )
+require_relative "./ngs_csv.rb"
+$SET.rows = NGS::readCSV( $SET.ngs_file)
+$SET.rows_group = $SET.rows.group_by(&:slide)
+raise if $SET.rows.nil?
+unless File.exists? $SET.storage_root
+  raise "invalid storage_root path<#{$SET.storage_root}> specified in configfile<#{config_path}>"
+end
 
 require_relative "./init.rb"
+require_relative "./log.rb"
+include MyLog
+require_relative "./task_hgmd.rb"
+TaskHgmd.init_db()
+require_relative './ps_wrap.rb'
 
 rack_logger = Logger.new('./log/app.log')
 
 configure do
-  set :rows, NGS::readCSV( $SET.ngs_file)
-  raise if settings.rows.nil?
-  set :rows_group, settings.rows.group_by(&:slide)
   use Rack::CommonLogger, rack_logger
-
-  unless File.exists? $SET.storage_root
-    raise "invalid storage_root path<#{$SET.storage_root}> specified in configfile<#{config_path}>"
-  end
-  settings.rows = NGS::readCSV( $SET.ngs_file )
-
 end
 mylog.info "start app"
 
@@ -40,8 +43,20 @@ before do
   @show_headers = ['slide', 'run_name', 'application', 'library_id', 'prep_kit']
 end
 
+post '/reload' do
+  $SET = load_config() # laod config.yml
+  $PREP = Prepkit.new( $SET.prepkit_info )
+  $SET.rows = NGS::readCSV( $SET.ngs_file)
+  $SET.rows_group = $SET.rows.group_by(&:slide)
+
+  load "task_hgmd.rb"
+  TaskHgmd.init_db()
+
+  redirect back
+end
+
 get '/' do
-  @table = settings.rows_group
+  @table = $SET.rows_group
   haml :index
 end
 
@@ -70,14 +85,14 @@ end
 get '/table' do
   if @params[:range] and /\A[0-9]+-[0-9]+/ === @params[:range]
     min , max = @params[:range].split('-').map{|v| v.chomp.to_i}
-    @filtered_table = slide_filtered_table(settings.rows, min, max)
+    @filtered_table = slide_filtered_table($SET.rows, min, max)
   elsif @params[:range] == 'others'
-    @filtered_table = settings.rows.group_by(&:slide).reject{|slide,arr| /\A[-+]?[0-9]+\z/ === slide }
+    @filtered_table = $SET.rows.group_by(&:slide).reject{|slide,arr| /\A[-+]?[0-9]+\z/ === slide }
   else
-    @filtered_table = settings.rows.group_by(&:slide)
+    @filtered_table = $SET.rows.group_by(&:slide)
   end
   @show_headers = ['slide', 'run_name', 'application', 'library_id', 'prep_kit']
-  @table = settings.rows
+  @table = $SET.rows
   haml :table, :locals => {:check_dir => @params[:check_dir]}
 end
 
@@ -88,7 +103,7 @@ end
 get '/form/:slide' do
   slide = @params[:slide]
   raise if slide.nil?
-  rows = settings.rows_group[slide]
+  rows = $SET.rows_group[slide]
   raise 'internal error; #{slide} not found in ngs' if rows.nil?
   haml :form, :locals => { :slide => slide, :rows =>rows }
 end
@@ -97,7 +112,7 @@ post '/' do
   slide = @params[:slide]
 
   return "empty post; please return to previous page" if @params[:check].nil?
-  rows = settings.rows.select{|c| c.slide == slide}
+  rows = $SET.rows.select{|c| c.slide == slide}
   library_ids_checked = params[:check].map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
   return "Error; you checked sample(s) that already has sample dir " if library_ids_checked.any?{|c| dir_exists_col? c}
   mylog.info 'post / called. slide=#{slide}; checked_ids=#{library_ids_checked}'

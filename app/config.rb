@@ -1,9 +1,10 @@
 require "yaml"
 
 REQ = %w{root storage_root ngs_file db_file makefile_path prepkit_info}.map(&:to_sym)
+ADDS = %w{rows rows_group}
 FILES_INDEX = [0,1,2,3,4]
 
-MyConfig = Struct.new("MyConfig", * REQ)
+MyConfig = Struct.new("MyConfig", * (REQ + ADDS ) )
 
 def load_config( file = File.expand_path("../../config.yml", __FILE__) )
   data = YAML.load_file(file)
