@@ -25,6 +25,7 @@ sudo yum install ruby ruby-devel
 sudo yum install gem
 # gem --version
 # gem env
+sudo yum install sqlite sqlite-devel
 git clone <this_app>
 cd <this_app>
 bundle install --path ./vendor/bundle # look for Gemfile to install gem(s)
@@ -51,7 +52,7 @@ bundle exec ruby ./app/app.rb -o 0.0.0.0 # 'bundle exec' means that you run ruby
 a ruby library is called 'gem'.  
 It is a little complicated to controll ruby-version and gem version.
 
-sinatra や Rails は [][Rack] の上に構築されたフレームワークです。ややこしいのでスルー推奨.  
+sinatra や Rails は [Rack][rack] の上に構築されたフレームワークです。ややこしいのでスルー推奨.  
 [参考][http://sugamasao.hatenablog.com/entry/20120213/1329152534]
 
 同一システム内で複数の ruby の version を使いたい/切り替えたいときは [][rbenv] を使います。 (似た者としてrvmがあるが rbenvのほうがよい )  
@@ -67,4 +68,4 @@ rbenv と gem(bundler) を併用する場合は、おなじ gem でも ruby の 
 [sinatra]:www.github.com/sinatra/sinatra
 [haml]:http://morizyun.github.io/blog/beginner-rails-tutorial-haml/
 [rbenv]:https://github.com/rbenv/rbenv
-[Rack]:http://rack.github.io/
+[rack]:http://rack.github.io/
