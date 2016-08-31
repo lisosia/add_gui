@@ -17,7 +17,7 @@ web based app to process data
 3. bundle install
 4. bundle exec ruby app/app.rb -o 0.0.0.0 # -o is a options to set ip address app(Rack) use
 
-#### app set up from scratch (centOS)
+### app set up from scratch (centOS)
 
 ```
 sudo yum install ruby ruby-devel
@@ -28,7 +28,7 @@ sudo yum install gem
 sudo yum install sqlite sqlite-devel
 git clone <this_app>
 cd <this_app>
-bundle install --path ./vendor/bundle # look for Gemfile to install gem(s)
+bundle install --path ./vendor/bundle # look for Gemfile to know which gems to install, then locally  install gem(s)
 ### set config.yml , place makefile, NGS_\*\*\*.csv file. then prepare storage directory (set by config)
 bundle exec ruby ./app/app.rb -o 0.0.0.0 # 'bundle exec' means that you run ruby-app using locally installed gems
 ```
@@ -36,9 +36,9 @@ bundle exec ruby ./app/app.rb -o 0.0.0.0 # 'bundle exec' means that you run ruby
 ## app structure
 
 + simple Ruby app based on framework [][sinatra]  
-+ use some perl, python code for process data
++ use some perl, python code to process data
 
-#### directory structure
+### directory structure
 
 + app/ - main sinatra codes
 + config.yml - config file
@@ -47,7 +47,7 @@ bundle exec ruby ./app/app.rb -o 0.0.0.0 # 'bundle exec' means that you run ruby
 + etc/ - etc
 + sim/ - for debug
 
-#### misc
+### misc
 
 a ruby library is called 'gem'.  
 It is a little complicated to controll ruby-version and gem version.
