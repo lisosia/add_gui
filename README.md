@@ -36,7 +36,7 @@ web based app to process data
 a ruby library is called 'gem'.  
 It is a little complicated to controll ruby-version and gem version.
 
-sinatra や Raild は [][Rack] の上に構築されたフレームワークです。ややこしいのでスルー推奨.  
+sinatra や Rails は [][Rack] の上に構築されたフレームワークです。ややこしいのでスルー推奨.  
 [参考][http://sugamasao.hatenablog.com/entry/20120213/1329152534]
 
 同一システム内で複数の ruby の version を使いたい/切り替えたいときは rbenv を使います。 (似た者としてrvmがあるが rbenvのほうがよい )  
