@@ -35,14 +35,14 @@ bundle exec ruby ./app/app.rb -o 0.0.0.0 # 'bundle exec' means that you run ruby
 
 ## app structure
 
-+ simple Ruby app based on framework [][sinatra]  
++ simple Ruby app based on framework [sinatra][]  
 + use some perl, python code to process data
 
 ### directory structure
 
 + app/ - main sinatra codes
 + config.yml - config file
-+ views/ - sinatra views ( [][haml] files used by ruby )
++ views/ - sinatra views ( [haml][] files used by ruby )
 + calc_dup/ - reused code written before
 + etc/ - etc
 + sim/ - for debug
@@ -55,7 +55,7 @@ It is a little complicated to controll ruby-version and gem version.
 sinatra や Rails は [Rack][rack] の上に構築されたフレームワークです。ややこしいのでスルー推奨.  
 [参考][http://sugamasao.hatenablog.com/entry/20120213/1329152534]
 
-同一システム内で複数の ruby の version を使いたい/切り替えたいときは [][rbenv] を使います。 (似た者としてrvmがあるが rbenvのほうがよい )  
+同一システム内で複数の ruby の version を使いたい/切り替えたいときは [rbenv][] を使います。 (似た者としてrvmがあるが rbenvのほうがよい )  
 app を動かすだけならば、システムに最初から入っている ruby を使って問題ないと思います。開発は ruby1.9.3p484 で行いました。
 [参考: rbenv を利用した Ruby 環境の構築][http://dev.classmethod.jp/server-side/language/build-ruby-environment-by-rbenv/]  
 
