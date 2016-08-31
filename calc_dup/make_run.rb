@@ -158,9 +158,12 @@ def make_auto_run_sh_core( path_check, rna_flag)
     return <<EOS
 \tcd $BASE_DIR/$DIR && date >> make.log && (time sh run.sh) >> make.log 2>> make.log
 \tcd $BASE_DIR/ && ruby -W0 #{path_check} $DIR >> check_results.log 2>> check_results.log
+done
 EOS
   else <<EOS
-\tqsub -sync y -N RNA-$DIR -o $DIR/make.log -j y /work/HiSeq2000/BaseCall/qsub_rna.sh $DIR
+\tqsub -sync y -N RNA-$DIR -o $DIR/make.log -j y /work/HiSeq2000/BaseCall/qsub_rna.sh $DIR &
+done
+wait
 EOS
   end
 end
@@ -183,7 +186,6 @@ do
 echo $DIR
 EOS
       f.puts make_auto_run_sh_core( path_check, rna_flag )
-      f.puts 'done'
     end
   end
   return run_script
