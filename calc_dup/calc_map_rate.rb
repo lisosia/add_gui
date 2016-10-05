@@ -2,7 +2,7 @@
 
 require 'yaml'
 require_relative '../app/prepkit.rb'
-PREP = Prepkit.new()
+PREP = Prepkit.new( load_config().prepkit_info )
 
 name = nil
 n_reads = map_reads = unq_reads = map_bases = unq_bases = 0

@@ -40,7 +40,7 @@ end
 mylog.info "start app"
 
 before do
-  @show_headers = ['slide', 'run_name', 'application', 'library_id', 'prep_kit']
+  @show_headers = ['slide', 'run_name', 'application', 'place' ,'library_id', 'prep_kit']
 end
 
 post '/reload' do
@@ -62,7 +62,9 @@ end
 get '/running' do
   
   auto_runs = PsWrap.command /auto_run/
+  # fetch notDone tasks in db
   notdone = TaskHgmd.tasks.where( :status => "NotDone")
+  # get corresponing unix-process
   data = notdone.map do |col|
     corresp = auto_runs.find do |proc| 
       col[:pid] == proc.pid.to_i and /#{col[:uuid]}/ =~ proc.command
@@ -115,7 +117,7 @@ post '/' do
   library_ids_checked = params[:check].map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
   return "Error; you checked sample(s) that already has sample dir " if library_ids_checked.any?{|c| dir_exists_col? c}
   mylog.info 'post / called. slide=#{slide}; checked_ids=#{library_ids_checked}'
-  raise "internal eoor; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
+  raise "internal error; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
 
   ok, prepkit = validate_prepkit( library_ids_checked )
   unless ok
@@ -130,6 +132,58 @@ post '/' do
   end
 
   redirect to('/process')
+end
+
+get '/form_cp_results/:slide' do
+  slide = @params[:slide]
+  raise if slide.nil?
+  rows = $SET.rows_group[slide]
+  raise 'internal error; #{slide} not found in ngs' if rows.nil?
+  haml :form_cp_results, :locals => { :slide => slide, :rows =>rows }
+end
+
+post '/form_cp_results' do
+  slide = @params[:slide]
+  raise if slide.nil?
+
+  return "empty post; please return to previous page" if @params[:check].nil?
+  rows = $SET.rows.select{|c| c.slide == slide}
+  library_ids_checked = params[:check].map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
+  return "Error; you checked sample(s) that does not have sample dir " if library_ids_checked.any?{|c| ! dir_exists_col? c}
+  mylog.info 'post form_cp_results / called. slide=#{slide}; checked_ids=#{library_ids_checked}'
+  raise "internal error; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
+
+  places = library_ids_checked.map(&:place).uniq
+  return "duplication of places: #{ places }" unless places.size == 1
+  place = places[0]
+
+  subdir = $SET.place2dirname[ place.to_s ]
+  if subdir.nil?
+    input = @params[ :output_subdir ]
+    if input.nil? or input.empty?
+      @input_subdir = true
+      @place = place
+      return ( haml :form_cp_results, :locals => { :slide => slide, :rows =>rows } )
+    else
+      subdir = input
+    end
+  end
+
+  raise unless Dir.exists? $SET.copy_output_dir
+  copy_output_dir = File.join( $SET.copy_output_dir , subdir)
+  `mkdir -p #{copy_output_dir}` unless Dir.exists? copy_output_dir
+
+  storage = File.join( $SET.storage_root, slide )
+  raise unless Dir.exists? storage
+
+cmd = <<EOS
+cd #{storage} ;
+bash #{File.join( $SET.root, "etc" , "cp_results.sh" ) } #{copy_output_dir} #{ library_ids_checked.map(&:library_id).join(" ") }
+EOS
+
+  ` #{cmd} `
+  redirect to( "/form_cp_results/#{slide}" )
+  
 end
 
 get '/all' do
@@ -195,7 +249,8 @@ get '/progress/:slide' do
   def check_results(slide)
     file = File.join $SET.storage_root, slide, "check_results.log"
     if File.exist? file
-      `cat #{file} | grep "WARNING"`
+      # `cat #{file} | grep -v -E "^[0-9]{4}"`
+      `cat #{file} `
     else
       "! file-not-exists"
     end
@@ -204,7 +259,7 @@ get '/progress/:slide' do
 
 missings_str = missings.size > 0 ? "<font color='red'>missing check_results.log (work not done, or error occured)<br/> #{missings.join("\n")} </font>" : ""
 <<EOS
-<h2> > check_results 's WARNING(s)</h2>
+<h2> > check_results </h2>
 <textarea cols="120" wrap="off" readonly>
 #{check_results( @params[:slide] )}
 </textarea>
