@@ -40,6 +40,10 @@ args string
     @@tasks
   end
 
+  def self.db()
+    @@db
+  end
+
   def self.run_sql(str)
     return @@db[str]
   end

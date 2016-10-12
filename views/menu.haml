@@ -1,0 +1,44 @@
+%h1= "slide:[#{slide}]"
+
+%a(href = "/form/#{slide}") form to launch task
+
+-if dir_slide_exist? slide
+  %p slide's directory exist;
+  %a(href = "/progress/#{slide}") progress()
+  %a(href = "/graph/#{slide}") graph(if work done)
+  %a(href = "/form_cp_results/#{slide}") form to copy results (cp_results.sh)
+<br/>
+<br/>
+
+#- *** links ***
+%a(href="/graph/#{slide}")
+%a(href = "/form_cp_results/#{slide}") form to copy results (cp_results.sh)
+
+#- *** tasks ***
+%div #{ tasks.count }
+%table(border="1")
+  %thread
+    %tr
+      - for h in heads
+        %th= h
+  %tbody
+    - for t in tasks
+      %tr
+        %td #{t.to_s}
+
+#- *** samples ***
+%table(border="1")
+  %thread
+    %tr
+      - for header in @show_headers
+        %th= header.to_s
+      %th dir_exists?
+  %tbody
+    - for row in rows
+      %tr
+        - for cell in @show_headers.map{|h| row.send(h)}
+          %td= cell.to_s
+        - lib_id = row.library_id.to_s
+        - ex = dir_exists?(slide, lib_id, row.prep_kit )
+        %td
+          #exist= ex ? 'exists' : '___no___'

@@ -101,6 +101,15 @@ def slide_filtered_table(table, min, max, include_not_num = false)
   table.group_by(&:slide).select{|k,v| (include_not_num and !( /\A[-+]?[0-9]+\z/ === k) ) or (k.to_i <= max and k.to_i >= min ) }
 end
 
+get '/menu/:slide' do
+  slide = @params[:slide]
+  rows = $SET.rows_group[slide]
+  #tasks = TaskHgmd.run_sql("select #{headers.join(',')} from tasks order by uuid desc where args like '#{slide} %' ")
+  tasks = TaskHgmd.tasks.where( Sequel.like( :args , "#{slide} %" ) )
+  heads = TaskHgmd.db.schema(:tasks).map{|e| e[0]}
+  haml :menu, :locals => { :slide => slide, :rows =>rows, :tasks => tasks, :heads => heads }
+end
+
 get '/form/:slide' do
   slide = @params[:slide]
   raise if slide.nil?
