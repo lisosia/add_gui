@@ -108,7 +108,7 @@ for sample in libid_list
 
     end
   end
-  puts " --- #{fastq_pe}"
+  # puts " --- #{fastq_pe}"
   fastq_pe = fastq_pe.join(" ")
 
   fastq_se = []

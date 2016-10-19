@@ -1,0 +1,19 @@
+-# args; slide == slide 
+-# args; headers == headers to show
+-# args; rows == rows of sample, from 
+
+%table(border="1")
+  %thread
+    %tr
+      - for header in @show_headers
+        %th= header.to_s
+      %th dir_exists?
+  %tbody
+    - for row in rows
+      %tr
+        - for cell in @show_headers.map{|h| row.send(h)}
+          %td= cell.to_s
+        - lib_id = row.library_id.to_s
+        - ex = dir_exists?(slide, lib_id, row.prep_kit )
+        %td
+          #exist= ex ? 'exists' : '___no___'

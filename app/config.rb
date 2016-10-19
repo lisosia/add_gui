@@ -1,7 +1,7 @@
 require "yaml"
 
 REQ = %w{root storage_root ngs_file db_file makefile_path prepkit_info copy_output_dir place2dirname}.map(&:to_sym)
-FILES_INDEX = [0,1,2,3,4, 6]
+FILES_INDEX = [0,1,2,4,6]
 
 ADDS = %w{rows rows_group}
 ADDS_FILES_INDEX = []

@@ -12,18 +12,6 @@ module TaskHgmd
   @@db = Sequel.sqlite( @@db_file )
   # @@db.run '.timeout 3000;'
 
-  @@tasks = @@db[:tasks]
-  @@tasks.where(:status => 'NotDone').each do |col|
-    pgid = col[:pid].to_s # Process.spawn( pgroup => true )
-    if PsWrap.command(/auto_run/).select{|e| e.pid == pgid }.count > 0 and PsWrap.all().select{|e| e.pgid == pgid }.size > 0
-      STDERR.puts "Error; Not finished task(pgid=#{pgid});"
-      STDERR.puts "$ kill -TERM -#{pgid}"
-      STDERR.puts "to kill all processes which has pgid=#{pgid}"
-      exit(1)
-    end
-  end
-  @@tasks.where(:status => 'NotDone' ).update(:status => 'Error' )
-
   def self.init_db()
     @@db.run <<-EOS
 create table if not exists tasks(
@@ -36,6 +24,20 @@ args string
     )
     EOS
   end
+  init_db()
+
+  @@tasks = @@db[:tasks]
+  @@tasks.where(:status => 'NotDone').each do |col|
+    pgid = col[:pid].to_s # Process.spawn( pgroup => true )
+    if PsWrap.command(/auto_run/).select{|e| e.pid == pgid }.count > 0 and PsWrap.all().select{|e| e.pgid == pgid }.size > 0
+      STDERR.puts "Error; Not finished task(pgid=#{pgid});"
+      STDERR.puts "$ kill -TERM -#{pgid}"
+      STDERR.puts "to kill all processes which has pgid=#{pgid}"
+      exit(1)
+    end
+  end
+  @@tasks.where(:status => 'NotDone' ).update(:status => 'Error' )
+
   def self.tasks()
     @@tasks
   end

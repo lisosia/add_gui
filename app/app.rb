@@ -95,6 +95,8 @@ get '/table' do
   @show_headers = ['slide', 'run_name', 'application', 'library_id', 'prep_kit']
   @table = $SET.rows
   haml :table, :locals => {:check_dir => @params[:check_dir]}
+
+
 end
 
 def slide_filtered_table(table, min, max, include_not_num = false)
@@ -106,7 +108,7 @@ get '/menu/:slide' do
   rows = $SET.rows_group[slide]
   #tasks = TaskHgmd.run_sql("select #{headers.join(',')} from tasks order by uuid desc where args like '#{slide} %' ")
   tasks = TaskHgmd.tasks.where( Sequel.like( :args , "#{slide} %" ) )
-  heads = TaskHgmd.db.schema(:tasks).map{|e| e[0]}
+  heads = tasks.columns
   haml :menu, :locals => { :slide => slide, :rows =>rows, :tasks => tasks, :heads => heads }
 end
 
@@ -124,8 +126,8 @@ post '/' do
   return "empty post; please return to previous page" if @params[:check].nil?
   rows = $SET.rows.select{|c| c.slide == slide}
   library_ids_checked = params[:check].map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
-  return "Error; you checked sample(s) that already has sample dir " if library_ids_checked.any?{|c| dir_exists_col? c}
-  mylog.info 'post / called. slide=#{slide}; checked_ids=#{library_ids_checked}'
+  return "Error(post /); you checked sample(s) that already has sample dir " if library_ids_checked.any?{|c| dir_exists_col? c}
+  mylog.info "post / called. slide=#{slide}; checked_ids=#{params[:check]}"
   raise "internal error; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
 
   ok, prepkit = validate_prepkit( library_ids_checked )
@@ -140,7 +142,7 @@ post '/' do
     return "<textarea cols='80'> #{e.inspect.to_s} </textarea> <br> check NGS file #{$SET.ngs_file} "
   end
 
-  redirect to('/process')
+  "task launched"
 end
 
 get '/form_cp_results/:slide' do
@@ -191,8 +193,8 @@ bash #{File.join( $SET.root, "etc" , "cp_results.sh" ) } #{copy_output_dir} #{ l
 EOS
 
   ` #{cmd} `
-  redirect to( "/form_cp_results/#{slide}" )
-  
+
+  "#files copyed to #{copy_output_dir}; bash command are below<br>#{cmd}"
 end
 
 get '/all' do
@@ -340,4 +342,42 @@ def prepare(slide, checked)
   TaskHgmd.spawn( slide, checked.map(&:library_id), bashfile )
 
   return nil
+end
+
+
+### VIEW HELPERS
+
+helpers do
+  def table(arg)
+    <<EOS
+<table border="1">
+<thread><tr><th>
+ok
+</th></tr></thread>
+
+<tbody>
+<tr><td>conl</td></tr>
+<tr><td> #{arg} </td></tr>
+</tbody>
+
+</table>
+EOS
+  end
+
+  def t2(arg)
+    <<EOS
+<table border="1">
+<thread><tr><th>
+ok
+</th></tr></thread>
+
+<tbody>
+<tr><td>conl</td></tr>
+<tr><td> #{arg} </td></tr>
+</tbody>
+
+</table>
+EOS
+  end
+
 end

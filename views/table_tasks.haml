@@ -1,0 +1,13 @@
+-# args; tasks == takss from Sequel.sqlite3()[:tasks].select()
+
+%div task counts: #{ tasks.count }
+%table(border="1")
+  %thread
+    %tr
+      - for h in tasks.columns
+        %th= h
+  %tbody
+    - for t in tasks
+      %tr
+      - for header, col in t
+        %td= col

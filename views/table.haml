@@ -18,6 +18,7 @@
 
 %h1 table
 
+-# pages
 - for i in 0.upto NGS::int_slides(@table).max / 50
   - range_str = "#{ i*50+1 }-#{ (i+1)*50 }"
   <a href="?range=#{ range_str }" >#{ range_str }</a> 
@@ -25,38 +26,10 @@
 
 <br><br>
 
-%a(href = "/process") processes
-
 -# select 'no-int-slide' or int-slides in specified range
 - for slide,rows in @filtered_table
-  %p= "slide ===#{slide}==="
-  %form(action="/" method="post" name="form-#{slide}" onSubmit="return submitCheck()")
-    %input(type="hidden" name="slide" value="#{slide}")
-    %input(type="submit" value="Send  slide:#{slide}" class="button")
-    %input(type="button" value='selectAll' onclick="toggleBox(  'form-#{slide}', 'checked') " )
-    %input(type="button" value='selectNone' onclick="toggleBox( 'form-#{slide}', '')" )    
-    
-    -if dir_slide_exist? slide
-      %a(href = "/progress/#{slide}") progress(slide's directory exist)
-      %a(href = "/graph/#{slide}") graph(if work done)
-
-    %table(border="1")
-      %thread
-        %tr
-          - for header in @show_headers
-            %th= header.to_s
-      %tbody
-        - for row in rows
-          %tr
-            - for cell in @show_headers.map{|h| row.send(h)}
-              %td= cell.to_s
-            - lib_id = row.library_id.to_s
-            %td
--#              %input(type="checkbox" name="check[]" value="#{lib_id}")
-            -if check_dir
-              %td
-                #exist= dir_exists?(slide, lib_id, row.values_at('prep_lit') ) 
-                
+  %p= "slide:[#{slide}]"
+  =haml :table_samples, :locals => { :slide => slide, :headers => @show_headers, :rows => rows }
 
 -# paging links on top and bottom
 - for i in 0.upto NGS::int_slides(@table).max / 50
