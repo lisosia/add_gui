@@ -12,6 +12,7 @@ dup = []
 snv = []
 indel = []
 
+sample_count = len(ls) / 3
 for i in range( len(ls)/3):
     ii = i*3
     sample = ls[ii].split(',')[0]; ss.append(sample)
@@ -29,7 +30,7 @@ indel = np.array(indel)
 X = np.arange( len(ss) )
 margin = 1.
 
-plt.figure( figsize=(10,10) )
+plt.figure( figsize=( 0.3 * sample_count  + 1.5 ,10) )
 width = 0.5
 
 plt.subplot(311)
@@ -62,7 +63,7 @@ w = 0.4
 plt.bar(X, snv, width=w ,color='b' ,align='center', label='SNV(NS/SS)')
 plt.bar(X + w , indel, width=w ,color='r',align='center', label='indel(coding)')
 plt.xlim( -margin, len(ss) -1 + width + margin)
-plt.legend(loc='upper right', prop={'size':10})
+plt.legend(loc='best', prop={'size':9}, bbox_to_anchor=( 1, 1) )
 plt.xticks(X +w/2, ss, rotation=90, fontsize='small')
 plt.yticks( np.arange(0, max(max( snv ),max(indel ) ) + 200  ,100) , fontsize='small')
 plt.gca().yaxis.grid(True)

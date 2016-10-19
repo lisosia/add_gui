@@ -9,4 +9,11 @@
       %li <a href='/running'>runnning tasks</a>
       %li <form action='/reload' method='post'><button type='submit'>reload_config</button></form>
     %hr
+    %ul.configlist
+      %li storage_root: #{@configs.storage_root}
+      %li ngs_file: #{@configs.ngs_file}
+      %li db_file: #{@configs.db_file}
+      %li copy_output_dir: #{@configs.copy_output_dir}
+      %li gxpc e hostname #{ `gxpc e hostname` }
+    %hr
     = yield

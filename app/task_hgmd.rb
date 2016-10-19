@@ -83,7 +83,6 @@ args string
     File.open( File.join($SET.root, 'log/tasklog'), "a+" ){|f| f.puts "#{args_str}"}
 
     # http://dba.stackexchange.com/questions/47919/how-do-i-specify-a-timeout-in-sqlite3-from-the-command-line
-    `mkdir -p #{dir}`
     File.open( bashfile , 'a') do |f|
       f.write <<EOS
 ### added by task_hgmd.rb

@@ -41,6 +41,7 @@ mylog.info "start app"
 
 before do
   @show_headers = ['slide', 'run_name', 'application', 'place' ,'library_id', 'prep_kit']
+  @configs = $SET
 end
 
 post '/reload' do
@@ -343,6 +344,7 @@ end
 
 # - checked - Array of Ngs::Col
 def prepare(slide, checked)
+  `mkdir -m 775 #{ File.join( $SET.storage_root, slide ) }`
   raise 'internal_error' unless ( checked.is_a? Array and checked[0].is_a? NGS::Col)
 
   group = checked.group_by { |col|
