@@ -3,15 +3,18 @@
 %table(border="1")
   %thread
     %tr
+      %th link to menu
       - headers.each_with_index do |h,i|
         - next unless (head_show.include? i)
         %th= h.to_s
     %tbody
       - for task in tasks
         %tr
+          %td
+            %a(href="/menu/#{ task[:args].split[0] }") @
           - task.each_with_index do |col, i|
             - next unless (head_show.include? i)
-            %td= col[1].to_s
+            %td= col[1]
           %td
             %a(href = "/progress/#{task[:args].split[0]}") progress
           %td

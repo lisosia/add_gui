@@ -12,7 +12,11 @@
     - for col, proc in data
       %tr
         - for h in heads
-          %td= col[h]
+          -if h == :args
+            %td( width= "300" ) #{col[h]}
+          -else
+            %td= col[h]
+
         %td= proc.nil? ? '<font color="red">NO</font>' : escape_html( proc.to_s )
         - unless proc.nil?
           %td
