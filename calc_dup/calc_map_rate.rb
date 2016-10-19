@@ -1,6 +1,7 @@
 #!/bio/bin/ruby
 
 require 'yaml'
+require_relative '../app/config.rb'
 require_relative '../app/prepkit.rb'
 PREP = Prepkit.new( load_config().prepkit_info )
 

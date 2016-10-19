@@ -172,9 +172,7 @@ post '/form_cp_results' do
   if subdir.nil?
     input = @params[ :output_subdir ]
     if input.nil? or input.empty?
-      @input_subdir = true
-      @place = place
-      return ( haml :form_cp_results, :locals => { :slide => slide, :rows =>rows } )
+      return "place not registered and txtarea is empty"
     else
       subdir = input
     end
@@ -193,8 +191,37 @@ bash #{File.join( $SET.root, "etc" , "cp_results.sh" ) } #{copy_output_dir} #{ l
 EOS
 
   ` #{cmd} `
-
   "#files copyed to #{copy_output_dir}; bash command are below<br>#{cmd}"
+end
+
+get '/form_remake_checkresults/:slide' do
+  slide = @params[:slide]
+  raise if slide.nil?
+  rows = $SET.rows_group[slide]
+  raise 'internal error; #{slide} not found in ngs' if rows.nil?
+  haml :form_remake_checkresults, :locals => { :slide => slide, :rows =>rows }
+end
+
+post '/form_remake_checkresults' do
+  slide = @params[:slide]
+  raise if slide.nil?
+  return "empty post; please return to previous page" if @params[:check].nil?
+  rows = $SET.rows.select{|c| c.slide == slide}
+  checked = params[:check].map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
+  return "Error; you checked sample(s) that does not have sample dir " if checked.any?{|c| ! dir_exists_col? c}
+
+  files = Dir[ File.join( $SET.storage_root,slide, '*' ) ]
+  fn = checked.map{ |r| files.find{|f| f =~ /#{r.library_id}/ } }
+  return 'internal err; some of sample-dirs you requested are missing' if fn.any?(&:nil?)
+  fn = fn.map{ |n| n.split('/')[-1] }
+
+  cmd = <<EOS
+cd #{ File.join( $SET.storage_root, slide ) }
+ruby -W0 #{ File.join( $SET.root, 'calc_dup', 'check_results.rb' ) } #{fn.join(',')} > check_results.log 2> check_results.log
+EOS
+  `#{cmd}`
+  "done; commands are<br>#{cmd}"
+  
 end
 
 get '/all' do
