@@ -220,8 +220,11 @@ post '/form_remake_checkresults' do
 cd #{ File.join( $SET.storage_root, slide ) }
 ruby -W0 #{ File.join( $SET.root, 'calc_dup', 'check_results.rb' ) } #{fn.join(',')} > check_results.log 2> check_results.log
 EOS
-  `#{cmd}`
-  "done; commands are<br>#{cmd}"
+
+  p = Process.spawn( cmd )
+  Process.detach( p )
+  
+  "background-job spawned;wait a minutes to complete; commands are<br>#{cmd}"
   
 end
 
