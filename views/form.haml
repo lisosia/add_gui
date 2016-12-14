@@ -18,9 +18,13 @@
     }
   }
 
+%p resultStatus: 
+%div(id="result" style="color: red; font-size: 40px;")
+
 
 %p= "slide ===#{slide}==="
-%form(action="/" method="post" name="form-#{slide}" onSubmit="return submitCheck()")
+-#%form(action="/" method="post" name="form-#{slide}" id="form-ajax" onSubmit="return submitCheck()")
+%form(action="/" method="post" name="form-#{slide}" id="form-ajax" )
   -if dir_slide_exist? slide
     %div slide's directory exist;
     %a(href = "/progress/#{slide}") progress()
@@ -29,7 +33,7 @@
   <br/>
   <br/>
   %input(type="hidden" name="slide" value="#{slide}")
-  %input(type="submit" value="Send  slide:#{slide}" class="button")
+  %button(class="button" )  Send  slide:#{slide}
   %input(type="button" value='selectAll' onclick="toggleBox(  'form-#{slide}', 'checked') " )
   %input(type="button" value='selectNone' onclick="toggleBox( 'form-#{slide}', '')" )    
    
@@ -58,3 +62,7 @@
 
           %td
             #exist= ex ? 'exists' : '___no___'
+
+
+
+<script type='text/javascript' src='/js/post.js'></script>

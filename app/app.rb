@@ -123,6 +123,7 @@ get '/menu/:slide' do
 end
 
 get '/form/:slide' do
+  
   slide = @params[:slide]
   raise if slide.nil?
   rows = $SET.rows_group[slide]
@@ -131,28 +132,32 @@ get '/form/:slide' do
 end
 
 post '/' do
-  slide = @params[:slide]
-
-  return "empty post; please return to previous page" if @params[:check].nil?
-  rows = $SET.rows.select{|c| c.slide == slide}
-  library_ids_checked = params[:check].map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
-  return "Error(post /); you checked sample(s) that already has sample dir " if library_ids_checked.any?{|c| dir_exists_col? c}
-  mylog.info "post / called. slide=#{slide}; checked_ids=#{params[:check]}"
-  raise "internal error; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
-
-  ok, prepkit = validate_prepkit( library_ids_checked )
-  unless ok
-    return haml( :error, :locals => { :unknown_prepkit => prepkit } )
-  end
 
   begin 
+
+    slide = @params[:slide]
+
+    return "empty post; check some samples" if @params[:check].nil?
+    rows = $SET.rows.select{|c| c.slide == slide}
+    library_ids_checked = params[:check].map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
+    return "Error(post /); you checked sample(s) that already has sample dir " if library_ids_checked.any?{|c| dir_exists_col? c}
+    mylog.info "post / called. slide=#{slide}; checked_ids=#{params[:check]}"
+    raise "internal error; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
+
+    ok, prepkit = validate_prepkit( library_ids_checked )
+    unless ok
+      # return haml( :error, :locals => { :unknown_prepkit => prepkit } )
+      raise "unknown_prepkit=>[#{prepkit}]"
+    end
+
     prepare(slide, library_ids_checked )
   rescue => e
     STDERR.puts e.inspect
-    return "<textarea cols='80'> #{e.inspect.to_s} </textarea> <br> check NGS file #{$SET.ngs_file} "
+    # return "<textarea cols='80'> #{e.inspect.to_s} </textarea> <br> check NGS file #{$SET.ngs_file} "
+    return "InternalError: #{e.inspect.to_s}"
   end
 
-  "task launched"
+  "Success: task launched #{}"
 end
 
 get '/form_cp_results/:slide' do
@@ -182,7 +187,7 @@ post '/form_cp_results' do
   if subdir.nil?
     input = @params[ :output_subdir ]
     if input.nil? or input.empty?
-      return "place not registered and txtarea is empty"
+      return "place not registered and textarea is empty"
     else
       subdir = input
     end
