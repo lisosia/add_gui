@@ -44,7 +44,16 @@ before do
   @configs = $SET
 end
 
+post '/reload_ngs' do
+  set_tmp = load_config()
+  $SET.ngs_file = set_tmp.ngs_file
+  $SET.rows = NGS::readCSV( $SET.ngs_file )
+  $SET.rows_group = $SET.rows.group_by(&:slide)  
+  redirect to('/')
+end
+
 post '/reload' do
+  
   $SET = load_config() # laod config.yml
   $PREP = Prepkit.new( $SET.prepkit_info )
   $SET.rows = NGS::readCSV( $SET.ngs_file)

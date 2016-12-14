@@ -7,7 +7,9 @@
       %li <a href='/table'>table (show all)</a>
       %li <a href='/process'>launched process</a>
       %li <a href='/running'>runnning tasks</a>
-      %li <form action='/reload' method='post'><button type='submit'>reload_config</button></form>
+
+      %li <form action='/reload_ngs' method='post'><button type='submit'>reload config->ngsfile</button></form>
+      %li <form action='/reload' method='post'><button type='submit'>reload_config (premise: no tasks are running now) </button></form>
     %hr
     %ul.configlist
       %li storage_root: #{@configs.storage_root}

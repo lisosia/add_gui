@@ -30,10 +30,11 @@ args string
   @@tasks.where(:status => 'NotDone').each do |col|
     pgid = col[:pid].to_s # Process.spawn( pgroup => true )
     if PsWrap.command(/auto_run/).select{|e| e.pid == pgid }.count > 0 and PsWrap.all().select{|e| e.pgid == pgid }.size > 0
-      STDERR.puts "Error; Not finished task(pgid=#{pgid});"
-      STDERR.puts "$ kill -TERM -#{pgid}"
-      STDERR.puts "to kill all processes which has pgid=#{pgid}"
-      exit(1)
+      msg = <<EOS
+Error; Not finished task(pgid=#{pgid}); $ kill -TERM -#{pgid} ; to kill all processes which has pgid=#{pgid}
+EOS
+      
+      raise msg
     end
   end
   @@tasks.where(:status => 'NotDone' ).update(:status => 'Error' )
