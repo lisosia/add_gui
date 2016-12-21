@@ -1,13 +1,16 @@
 %html
   %head
     %link(rel="stylesheet" href="/css/default.css")
+    %script(type="text/javascript" src="/js/jquery-2.2.4.min.js")
   %body
     %ul.headerlist
       %li <a href='/'>home</a>
       %li <a href='/table'>table (show all)</a>
       %li <a href='/process'>launched process</a>
       %li <a href='/running'>runnning tasks</a>
-      %li <form action='/reload' method='post'><button type='submit'>reload_config</button></form>
+
+    <form action='/reload_ngs' method='post'><button type='submit'>reload config->ngsfile</button></form>
+    <form action='/reload' method='post'><button type='submit'>reload_config (premise: no tasks are running now) </button></form>
     %hr
     %ul.configlist
       %li storage_root: #{@configs.storage_root}

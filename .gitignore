@@ -43,3 +43,6 @@ inner_files/
 public/
 app/app.rb.pid.hist
 etc/mk_graph/check_results.log
+inner_files
+STORAGE_ROOT_SIM
+Makefile
