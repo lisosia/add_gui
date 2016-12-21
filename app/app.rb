@@ -131,6 +131,7 @@ get '/form/:slide' do
   haml :form, :locals => { :slide => slide, :rows =>rows }
 end
 
+# assume retuened dataType; 'text' ; in /js/post.js
 post '/' do
 
   begin 
