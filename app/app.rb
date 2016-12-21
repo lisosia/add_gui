@@ -235,6 +235,11 @@ end
 
 get '/graph/:slide' do
   slide = @params[:slide]
+  mylog.info slide
+  mylog.info slide.inspect
+  STDOUT.puts slide.inspect
+  STDERR.puts slide.inspect
+
   unless File.exist? File.join($SET.root, 'public/graph/#{slide}.png' )
     mk_graph(slide)
   end

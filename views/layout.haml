@@ -15,5 +15,7 @@
       %li db_file: #{@configs.db_file}
       %li copy_output_dir: #{@configs.copy_output_dir}
       %li gxpc e hostname #{ `gxpc e hostname` }
+      -# %li ldd #{ `ldd /bio/bin/samtools` }
+      -# %li gxpc e ldd #{ `gxpc e ldd /bio/bin/samtools` }
     %hr
     = yield
