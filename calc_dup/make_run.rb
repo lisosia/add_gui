@@ -67,7 +67,7 @@ for sample in libid_list
   run_dir.each_with_index do |dir, i|
     globdst = File.join( dir, "#{prefix}#{sample}*#{suffix}", "Sample_#{sample}*" )
     globfiles = Dir.glob( globdst )
-    raise "no fastq files to link in [#{blobdst}]" if globfiles.size == 0
+    raise "no fastq files to link in [#{globdst}]" if globfiles.size == 0
     for direc in globfiles
       direc.chomp!
       unless Dir.exists? direc
