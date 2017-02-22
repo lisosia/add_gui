@@ -65,7 +65,10 @@ for sample in libid_list
   
   ############### loop to push elements to RUN[_DIR]_[PS]E
   run_dir.each_with_index do |dir, i|
-    for direc in Dir.glob( File.join( dir, "#{prefix}#{sample}*#{suffix}", "Sample_#{sample}*" ) )
+    globdst = File.join( dir, "#{prefix}#{sample}*#{suffix}", "Sample_#{sample}*" )
+    globfiles = Dir.glob( globdst )
+    raise "no fastq files to link in [#{blobdst}]" if globfiles.size == 0
+    for direc in globfiles
       direc.chomp!
       unless Dir.exists? direc
         puts "Error; #{direc} was not found"
