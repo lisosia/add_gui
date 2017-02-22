@@ -196,7 +196,7 @@ post '/form_cp_results' do
 
   raise unless Dir.exists? $SET.copy_output_dir
   copy_output_dir = File.join( $SET.copy_output_dir , subdir)
-  `mkdir -p #{copy_output_dir}` unless Dir.exists? copy_output_dir
+  FileUtils.mkdir_p copy_output_dir Dir.exists? copy_output_dir
 
   storage = File.join( $SET.storage_root, slide )
   raise unless Dir.exists? storage
@@ -362,7 +362,7 @@ end
 
 # - checked - Array of Ngs::Col
 def prepare(slide, checked)
-  `mkdir -m 775 #{ File.join( $SET.storage_root, slide ) }`
+  FileUtils.mkdir_p File.join( $SET.storage_root, slide ), { :mode => 0755 }
   raise 'internal_error' unless ( checked.is_a? Array and checked[0].is_a? NGS::Col)
 
   group = checked.group_by { |col|
