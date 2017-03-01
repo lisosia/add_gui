@@ -18,8 +18,29 @@
     }
   }
 
-%p resultStatus: 
-%div(id="result" style="color: red; font-size: 40px;")
+:javascript
+  function toggleRelaunch( form ){
+    var f = document.forms[form];
+    var checked = document.getElementById('relaunch').checked
+
+    if(checked == false){ 
+      for(var i=0;i < f.length; i++){
+        if( f.elements[i].getAttribute('direxists') == 'true' ){
+          f.elements[i].disabled = true
+          f.elements[i].checked = ''
+        }
+      }      
+    } else {
+      for(var i=0;i < f.length; i++){
+        if( f.elements[i].name == 'check[]' ){
+          f.elements[i].disabled = false;
+        }
+      }
+    }
+  }
+
+%p resultStatus:
+%div(id="result" style="color: red; font-size: 40px;") 
 
 
 %p= "slide ===#{slide}==="
@@ -36,6 +57,9 @@
   %button(class="button" )  Send  slide:#{slide}
   %input(type="button" value='selectAll' onclick="toggleBox(  'form-#{slide}', 'checked') " )
   %input(type="button" value='selectNone' onclick="toggleBox( 'form-#{slide}', '')" )    
+  ||
+  for relaunch
+  %input(id="relaunch" name="relaunch" type="checkbox" value='for-relaunch' onclick="toggleRelaunch( 'form-#{slide}' )" )    
    
 
   %table(border="1")
@@ -55,10 +79,10 @@
 
           - if ex
             %td
-              %input(type="checkbox" name="check[]" value="#{lib_id}" disabled )
+              %input(type="checkbox" name="check[]" value="#{lib_id}" direxists="true" disabled )
           - else
             %td
-              %input(type="checkbox" name="check[]" value="#{lib_id}" )
+              %input(type="checkbox" name="check[]" value="#{lib_id}" direxists="false" )
 
           %td
             #exist= ex ? 'exists' : '___no___'

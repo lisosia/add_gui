@@ -1,0 +1,22 @@
+-# args; table == @tables
+-# args; box == true or false,nil .show checkbox or not
+
+%table(border=1)
+  %tr
+    - if box
+      %th box
+    %th slide
+    %th # of samples
+    %th prep_kit(s)
+
+  - for slide, rows in @table
+    %tr
+      - if box
+        %td
+          %input( type='checkbox' name="slides[]" value="#{slide}" )
+      %td
+        %a(href="/menu/#{slide}")= slide
+      %td
+        %span #{rows.size}
+      %td
+        %span #{rows.map(&:prep_kit).uniq.map(&:inspect).sort.join("<font color='red'> / </font>")}

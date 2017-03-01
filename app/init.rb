@@ -4,10 +4,8 @@ require 'haml'
 require 'pp'
 require 'pry'
 require 'sqlite3'
+require 'fileutils'
 
-`mkdir -p #{ File.join(settings.root, "tmp") }`
-`mkdir -p #{ File.join(settings.root, "log") }`
-`mkdir -p #{ File.join(settings.root, "sim") }`
-
-`mkdir -p tmp`
-
+FileUtils.mkdir_p File.join(settings.root, "tmp")
+FileUtils.mkdir_p File.join(settings.root, "log")
+FileUtils.mkdir_p File.join(settings.root, "sim")

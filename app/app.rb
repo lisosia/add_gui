@@ -88,7 +88,7 @@ post '/kill/:pid' do
   pid = @params[:pid]
   raise 'internal error' unless /[1-9][0-9]*/ =~ pid
   raise 'not positive pid' unless pid.to_i > 0
-  `kill -TERM -#{pid}` # kill all process groups
+  `kill -KILL -#{pid}` # kill all process groups
   sleep 1
   redirect to('/running')
 end
@@ -117,7 +117,8 @@ get '/menu/:slide' do
   slide = @params[:slide]
   rows = $SET.rows_group[slide]
   #tasks = TaskHgmd.run_sql("select #{headers.join(',')} from tasks order by uuid desc where args like '#{slide} %' ")
-  tasks = TaskHgmd.tasks.where( Sequel.like( :args , "#{slide} %" ) )
+  #tasks = TaskHgmd.tasks.where( Sequel.like( :args , "#{slide} %" ) )
+  tasks = TaskHgmd.tasks_find_by_slide(slide) 
   heads = tasks.columns
   haml :menu, :locals => { :slide => slide, :rows =>rows, :tasks => tasks, :heads => heads }
 end
@@ -141,7 +142,12 @@ post '/' do
     return "empty post; check some samples" if @params[:check].nil?
     rows = $SET.rows.select{|c| c.slide == slide}
     library_ids_checked = params[:check].map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
-    return "Error(post /); you checked sample(s) that already has sample dir " if library_ids_checked.any?{|c| dir_exists_col? c}
+    
+    # if not relunch, and sample-di exists, then error
+    unless @params[:relaunch]
+      return "Error(post /); you checked sample(s) that already has sample dir " if library_ids_checked.any?{|c| dir_exists_col? c}
+    end
+
     mylog.info "post / called. slide=#{slide}; checked_ids=#{params[:check]}"
     raise "internal error; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
 
@@ -151,7 +157,7 @@ post '/' do
       raise "unknown_prepkit=>[#{prepkit}]"
     end
 
-    prepare(slide, library_ids_checked )
+    prepare_and_spawn(slide, library_ids_checked, @params[:relaunch] )
   rescue => e
     STDERR.puts e.inspect
     # return "<textarea cols='80'> #{e.inspect.to_s} </textarea> <br> check NGS file #{$SET.ngs_file} "
@@ -196,7 +202,7 @@ post '/form_cp_results' do
 
   raise unless Dir.exists? $SET.copy_output_dir
   copy_output_dir = File.join( $SET.copy_output_dir , subdir)
-  `mkdir -p #{copy_output_dir}` unless Dir.exists? copy_output_dir
+  FileUtils.mkdir_p copy_output_dir Dir.exists? copy_output_dir
 
   storage = File.join( $SET.storage_root, slide )
   raise unless Dir.exists? storage
@@ -277,6 +283,33 @@ mkdir -p #{$SET.root}/public/graph
 cd #{$SET.root}/public/graph && cat #{$SET.storage_root}/#{slide}/check_results.log | python #{$SET.root}/etc/mk_graph/mk_graph.py
 mv tmp.png #{$SET.root}/public/graph/#{slide}.png
 EOS
+end
+
+get '/graph-across-slides' do
+  @table = $SET.rows_group
+  haml :graph_across_slides, :locals =>{ :table => @table } , :layout => false
+end
+post '/graph-across-slides' do
+  slides = @params[:slides]
+  redirect to( "/graph-across-slides/#{slides.sort.join '-'}" )
+  # haml :graph_across_slides, :locals =>{ :table => @table } , :layout => false
+end
+
+get '/graph-across-slides/:slides' do
+  slides = @params[:slides].split('-')
+  raise "invalid requesst #{@params[:slides]}" if slides.size==0
+  haml :graph_across_slides_select_samples, :locals => { :table_group_by_slide => $SET.rows_group.select{ |k,v| slides.include? k.to_s } }
+end
+
+post '/graph-across-slides/:slides' do
+  ids_by_slide = @params[:check].map{ |i| i.split('@') }.group_by{|arr| arr[0] }
+  rows_by_slide = ids_by_slide.map do | slide, vals |
+    libids = vals.map{ |slide,ld| ld }
+    rows = $SET.rows.select{|c| c.slide == slide}
+    library_ids_checked = libids.map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
+  end
+  
+  return  rows_by_slide[1].size.to_s
 end
 
 get '/process' do
@@ -366,8 +399,13 @@ def validate_prepkit(checked)
 end
 
 # - checked - Array of Ngs::Col
-def prepare(slide, checked)
-  `mkdir -m 775 #{ File.join( $SET.storage_root, slide ) }`
+def prepare_and_spawn(slide, checked, relaunch)
+  
+  if relaunch # if relaunch , check duplication of task; 
+    raise "launched task and running task conflict at slide==#{slide}. wait until the tasks finishes or uncheck 'for-relaunch' button " if TaskHgmd.tasks_find_by_slide(slide).where( :status => 'NotDone' ).to_a.size > 0
+  end
+  
+  FileUtils.mkdir_p File.join( $SET.storage_root, slide ), { :mode => 0755 }
   raise 'internal_error' unless ( checked.is_a? Array and checked[0].is_a? NGS::Col)
 
   group = checked.group_by { |col|
@@ -375,7 +413,7 @@ def prepare(slide, checked)
   }
   require_relative "../calc_dup/make_run.rb"
   path_check = File.join($SET.root,"calc_dup/check_results.rb")
-  # make run.sh
+  # make run.sh for samplesdirs if not exists
   group.each do |regex, rows|
     raise "internal error; unknown_prepkit" if regex.nil?
     prep_kits = rows.map(&:prep_kit)
@@ -392,14 +430,13 @@ def prepare(slide, checked)
 
   # launch task
   TaskHgmd.spawn( slide, checked.map(&:library_id), bashfile )
-
-  return nil
 end
 
 
 ### VIEW HELPERS
 
 helpers do
+
   def table(arg)
     <<EOS
 <table border="1">

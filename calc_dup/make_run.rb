@@ -2,6 +2,7 @@
 
 require 'yaml'
 require 'optparse'
+require 'fileutils'
 
 require_relative '../app/prepkit.rb'
 require_relative '../app/config.rb'
@@ -90,7 +91,7 @@ for sample in libid_list
   fastq_dir = File.join( storage, run, sample, genome, 'fastq' )
   # `` system call -- exit if fail 
   # system() -- exit ruby proess if fail
-  `mkdir -p #{fastq_dir}`
+  FileUtils.mkdir_p fastq_dir
   
   fastq_pe = []
   ############### run_pe loop to make fastq_pe
@@ -138,7 +139,7 @@ for sample in libid_list
   ############### make run.sh in each sample dir
   if ! rna_flag
     thread = `gxpc e hostname | wc -l`.gsub(/\n/, '')
-    `mkdir -p #{File.join( storage, run, sample)}`
+    FileUtils.mkdir_p File.join( storage, run, sample)
     run_file = File.join( storage, run, sample, 'run.sh' )
     File.open(run_file, "w") do |f|
       f.write "gxpc make -k -j #{thread} -f #{path_makefile} "
