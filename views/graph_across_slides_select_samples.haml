@@ -1,0 +1,4 @@
+%form(action="#" method="post" name="graph-select" id="graph-select" )
+  %button( class='button') make graph
+  - for slide, rows in table_group_by_slide
+    =haml :table_samples, :locals => { :slide => slide, :rows => rows, :box => true }

@@ -280,6 +280,33 @@ mv tmp.png #{$SET.root}/public/graph/#{slide}.png
 EOS
 end
 
+get '/graph-across-slides' do
+  @table = $SET.rows_group
+  haml :graph_across_slides, :locals =>{ :table => @table } , :layout => false
+end
+post '/graph-across-slides' do
+  slides = @params[:slides]
+  redirect to( "/graph-across-slides/#{slides.sort.join '-'}" )
+  # haml :graph_across_slides, :locals =>{ :table => @table } , :layout => false
+end
+
+get '/graph-across-slides/:slides' do
+  slides = @params[:slides].split('-')
+  raise "invalid requesst #{@params[:slides]}" if slides.size==0
+  haml :graph_across_slides_select_samples, :locals => { :table_group_by_slide => $SET.rows_group.select{ |k,v| slides.include? k.to_s } }
+end
+
+post '/graph-across-slides/:slides' do
+  ids_by_slide = @params[:check].map{ |i| i.split('@') }.group_by{|arr| arr[0] }
+  rows_by_slide = ids_by_slide.map do | slide, vals |
+    libids = vals.map{ |slide,ld| ld }
+    rows = $SET.rows.select{|c| c.slide == slide}
+    library_ids_checked = libids.map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
+  end
+  
+  return  rows_by_slide[1].size.to_s
+end
+
 get '/process' do
   step = 10
   offset = @params[:offset].nil? ? 0 : @params[:offset].to_i
@@ -404,6 +431,7 @@ end
 ### VIEW HELPERS
 
 helpers do
+
   def table(arg)
     <<EOS
 <table border="1">
