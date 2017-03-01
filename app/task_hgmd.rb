@@ -43,6 +43,11 @@ EOS
     @@tasks
   end
 
+  def self.tasks_find_by_slide( slide )
+    @@tasks
+    return self.tasks.where( Sequel.like( :args , "#{slide} %" ) )
+  end
+
   def self.db()
     @@db
   end
