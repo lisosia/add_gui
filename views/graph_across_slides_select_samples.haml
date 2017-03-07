@@ -1,4 +1,8 @@
-%form(action="#" method="post" name="graph-select" id="graph-select" )
+%div(id='result' style="color: red; font-size: 20px;")
+
+%form(action="#" method="post" name="graph-select" id="form-ajax" )
   %button( class='button') make graph
   - for slide, rows in table_group_by_slide
     =haml :table_samples, :locals => { :slide => slide, :rows => rows, :box => true }
+
+<script type='text/javascript' src='/js/graph-across-slides-post.js'></script>

@@ -9,11 +9,12 @@ jQuery(function($) {
 	    url: $form.attr('action'),
 	    type: $form.attr('method'),
 	    data: $form.serialize(),
-	    dataType: 'text',
+	    dataType: 'json',
 	    timeout: 600000,
 
 	    beforeSend: function(xhr, settings) {
 		$button.attr('disabled', true);
+		$('#result').text( 'submitted' );
 	    },
 
 	    complete: function(xhr, textStatus) {
@@ -22,13 +23,18 @@ jQuery(function($) {
 
 	    success: function( result, textStatus, xhr ){
 		var $res = $('#result');
-		$res.text( result );
+		if( result['success'] ){
+		    $res.text( 'Success : ' );
+		    $('<a href="' + result['link'] + '">link to graph</a>').appendTo( $res );
+		}else{
+		    $res.text( "Failed : " + result['msg'] )
+		}
 	    },
 
 	    error: function(xhr, textStatus, error) {
-		console.log('failed');
+		console.log('failed. ' + typeof(error) );
 		var $res = $('#result');
-		$res.text( "ajax post Failed: " + error);
+		$res.text( "ajax post Failed: " + error + ' : ' + textStatus);
 	    }
 
 	})

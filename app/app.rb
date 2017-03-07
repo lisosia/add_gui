@@ -6,6 +6,7 @@ PreventDup::run( File.expand_path(__FILE__) + ".pid.hist" )
 require 'sinatra'
 require 'sinatra/reloader'
 require 'sinatra/config_file'
+require 'json'
 
 set :root, File.expand_path( '../../.', __FILE__)
 
@@ -224,6 +225,41 @@ get '/form_remake_checkresults/:slide' do
   haml :form_remake_checkresults, :locals => { :slide => slide, :rows =>rows }
 end
 
+def remake_checkresults( slide , rows, async= true, require_ret = false )
+  files = Dir[ File.join( $SET.storage_root, slide, '*' ) ]
+  fn = rows.map{ |r| files.find{|f| f =~ /#{r.library_id}/ } }
+  raise 'internal err; some of sample-dirs you requested are missing' if fn.any?(&:nil?)
+  fn = fn.map{ |n| n.split('/')[-1] }
+  
+
+  cmd = <<EOS
+cd #{ File.join( $SET.storage_root, slide ) }
+ruby -W0 #{ File.join( $SET.root, 'calc_dup', 'check_results.rb' ) } #{fn.join(',')} > check_results.log 2> check_results.log
+EOS
+  
+  cmd_sync = <<EOS
+cd #{ File.join( $SET.storage_root, slide ) }
+ruby -W0 #{ File.join( $SET.root, 'calc_dup', 'check_results.rb' ) } #{fn.join(',')} #{ require_ret ? '' : '> check_results.log' } 2>&1
+EOS
+  
+  
+
+  if async
+    pid = Process.spawn( cmd )
+    Process.detach( pid )
+    return { :pid => pid, :cmd => cmd }
+  else
+    ret = ` #{cmd_sync} `
+    if require_ret
+      return { :ret => ret, :cmd => cmd_sync }
+    else
+      return { :cmd => cmd_sync }
+    end
+      
+  end
+
+end
+
 post '/form_remake_checkresults' do
   slide = @params[:slide]
   raise if slide.nil?
@@ -232,20 +268,8 @@ post '/form_remake_checkresults' do
   checked = params[:check].map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
   return "Error; you checked sample(s) that does not have sample dir " if checked.any?{|c| ! dir_exists_col? c}
 
-  files = Dir[ File.join( $SET.storage_root,slide, '*' ) ]
-  fn = checked.map{ |r| files.find{|f| f =~ /#{r.library_id}/ } }
-  return 'internal err; some of sample-dirs you requested are missing' if fn.any?(&:nil?)
-  fn = fn.map{ |n| n.split('/')[-1] }
-
-  cmd = <<EOS
-cd #{ File.join( $SET.storage_root, slide ) }
-ruby -W0 #{ File.join( $SET.root, 'calc_dup', 'check_results.rb' ) } #{fn.join(',')} > check_results.log 2> check_results.log
-EOS
-
-  p = Process.spawn( cmd )
-  Process.detach( p )
-  
-  "background-job spawned;wait a minutes to complete; commands are<br>#{cmd}"
+  ret = remake_checkresults( slide, checked, async=true )
+  "background-job spawned;wait a minutes to complete; commands are<br>#{ ret[:cmd] }"
   
 end
 
@@ -254,18 +278,17 @@ get '/all' do
   haml :table
 end
 
-get '/graph/:slide' do
-  slide = @params[:slide]
-  mylog.info slide
-  mylog.info slide.inspect
-  STDOUT.puts slide.inspect
-  STDERR.puts slide.inspect
+# get '/graph/:slide' do
+#   slide = @params[:slide]
+#   mylog.info slide.inspect
+#   STDERR.puts slide.inspect
 
-  unless File.exist? File.join($SET.root, 'public/graph/#{slide}.png' )
-    mk_graph(slide)
-  end
-  haml :graph , :locals => {:slide => "#{slide}"}
-end
+#   if not File.exist? File.join($SET.root, 'public/graph/#{slide}.png' ) and not slide =~ /tmp/
+#     puts 'mk_graph()'
+#     mk_graph(slide)
+#   end
+#   haml :graph , :locals => {:slide => "#{slide}"}
+# end
 
 post '/graph/:slide' do
   slide = @params[:slide]
@@ -301,15 +324,37 @@ get '/graph-across-slides/:slides' do
   haml :graph_across_slides_select_samples, :locals => { :table_group_by_slide => $SET.rows_group.select{ |k,v| slides.include? k.to_s } }
 end
 
+# example : return { :link => '/graph/5', :success => false }.to_json()#
 post '/graph-across-slides/:slides' do
-  ids_by_slide = @params[:check].map{ |i| i.split('@') }.group_by{|arr| arr[0] }
-  rows_by_slide = ids_by_slide.map do | slide, vals |
-    libids = vals.map{ |slide,ld| ld }
-    rows = $SET.rows.select{|c| c.slide == slide}
-    library_ids_checked = libids.map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
+  begin
+    slides = @params[:slides].split('-')
+    rows_by_slide = @params[:check].map do |i|
+      slide, lib_id = i.split('@') 
+      rows = $SET.rows.select{|c| c.slide == slide}
+      row = rows.select{|c| c.library_id == lib_id}[0]
+    end.group_by{| row | row[:slide] }
+    
+    inputs = rows_by_slide.map do |slide ,rows|
+      ret = remake_checkresults( slide ,rows , async=false, require_ret = true )
+      ret[:ret].chomp.gsub( /^/, "#{slide}:" )
+    end.join("\n").squeeze("\n")
+    
+    File.open( File.join( $SET.root, 'tmponput' ), 'w' ){|f| f.write inputs }
+    outpng = "tmp_#{slides.join('-')}_#{ Time.now().strftime('%Y%m%d-%H%M%S') }.png"  
+    cmd = <<EOS
+mkdir -p #{$SET.root}/public/graph
+cd #{$SET.root}/public/graph
+echo -n '#{inputs}' | python #{$SET.root}/etc/mk_graph/mk_graph.py #{$SET.root}/public/graph/#{ outpng }
+EOS
+    ` #{cmd}  `
+    raise 'internal error : png not made' unless File.exists?( File.join( "#{$SET.root}/public/graph", outpng ) )
+    
+    return { :link => "/graph/#{outpng}", :success => true }.to_json
+
+  rescue => e
+    return { :success => false ,:msg => e.inspect }.to_json()
   end
-  
-  return  rows_by_slide[1].size.to_s
+
 end
 
 get '/process' do

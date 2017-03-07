@@ -1,13 +1,19 @@
-import sys
+import sys, os
 import numpy as np
 import matplotlib as mpl
-mpl.use('Agg')
+mpl.use('Agg') # without this linie, some graphic related error
 
 import matplotlib.pyplot as plt
 
+png_filename = 'tmp.png'
+if len( sys.argv ) >  1 :
+    png_filename = sys.argv[1]
+    if not png_filename.endswith( '.png' ) : 
+        png_filename += '.png'
 
 ls = sys.stdin.readlines()
-assert len(ls) %3 == 0
+assert len(ls) %3 == 0, "input line count is %d" % len(ls)
+assert len(ls) != 0
 
 ss = []
 dep = []
@@ -72,5 +78,6 @@ plt.yticks( np.arange(0, max(max( snv ),max(indel ) ) + 200  ,100) , fontsize='s
 plt.gca().yaxis.grid(True)
 
 plt.tight_layout()
-plt.savefig('tmp.png')
+plt.savefig( png_filename )
 
+assert os.path.exists( png_filename ) == True
