@@ -3,6 +3,12 @@
 require_relative "prevent_dup.rb"
 PreventDup::run( File.expand_path(__FILE__) + ".pid.hist" )
 
+require 'haml'
+require 'pp'
+require 'pry'
+require 'sqlite3'
+require 'fileutils'
+
 require 'sinatra'
 require 'sinatra/reloader'
 require 'sinatra/config_file'
@@ -26,12 +32,19 @@ unless File.exists? $SET.storage_root
   raise "invalid storage_root path<#{$SET.storage_root}> specified in configfile<#{config_path}>"
 end
 
-require_relative "./init.rb"
+FileUtils.mkdir_p File.join(settings.root, "tmp")
+FileUtils.mkdir_p File.join(settings.root, "log")
+FileUtils.mkdir_p File.join(settings.root, "sim")
+
+require_relative "./process_status.rb"
 require_relative "./log.rb"
 include MyLog
 require_relative "./task_hgmd.rb"
 TaskHgmd.init_db()
 require_relative './ps_wrap.rb'
+require_relative "../calc_dup/make_run.rb"
+require_relative "../calc_dup/check_results.rb"
+
 
 rack_logger = Logger.new('./log/app.log')
 
@@ -43,6 +56,7 @@ mylog.info "start app"
 before do
   @show_headers = ['slide', 'run_name', 'application', 'place' ,'library_id', 'prep_kit']
   @configs = $SET
+  ProcessStatus.put 'debug', ProcessStatus::DONE, msg = 'this is for debug'
 end
 
 post '/reload_ngs' do
@@ -134,38 +148,71 @@ get '/form/:slide' do
 end
 
 # assume retuened dataType; 'text' ; in /js/post.js
-post '/' do
+post '/get_post_status/:uuid' do
+  uuid = @params[:uuid]
+  state = nil
+  state = ProcessStatus.get(uuid)
 
-  begin 
-
-    slide = @params[:slide]
-
-    return "empty post; check some samples" if @params[:check].nil?
-    rows = $SET.rows.select{|c| c.slide == slide}
-    library_ids_checked = params[:check].map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
-    
-    # if not relunch, and sample-di exists, then error
-    unless @params[:relaunch]
-      return "Error(post /); you checked sample(s) that already has sample dir " if library_ids_checked.any?{|c| dir_exists_col? c}
-    end
-
-    mylog.info "post / called. slide=#{slide}; checked_ids=#{params[:check]}"
-    raise "internal error; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
-
-    ok, prepkit = validate_prepkit( library_ids_checked )
-    unless ok
-      # return haml( :error, :locals => { :unknown_prepkit => prepkit } )
-      raise "unknown_prepkit=>[#{prepkit}]"
-    end
-
-    prepare_and_spawn(slide, library_ids_checked, @params[:relaunch] )
-  rescue => e
-    STDERR.puts e.inspect
-    # return "<textarea cols='80'> #{e.inspect.to_s} </textarea> <br> check NGS file #{$SET.ngs_file} "
-    return "InternalError: #{e.inspect.to_s}"
+  # deletion of the record is optoinal
+  # ProcessStatus.delete(uuid) if not state.nil? and state.end?
+  
+  if state    
+    return { 'status' => state.status, 'msg' => state.msg, 'time' => state.created_at  }.to_json
+  else
+    return { 'status' => 'invalid request', 'msg' => 'requested post-result(uuid) not found' }.to_json
   end
 
-  "Success: task launched #{}"
+end
+get "/get_post_status/:uuid" do
+  uuid = @params[:uuid]
+  ProcessStatus.expire() # remove expired data
+  haml :get_post_status, :locals => { :uuid => uuid }
+end
+$_post_allow = true
+post '/' do
+  uuid = SecureRandom.uuid
+  unless $_post_allow
+    status 500
+    return 'error: double submit'
+  end
+  $_post_allow = false
+  ProcessStatus.put( uuid, ProcessStatus::PROCESSING )
+
+  Thread.start do
+    begin 
+
+      slide = @params[:slide]
+
+      raise "empty post; check some samples" if @params[:check].nil?
+      rows = $SET.rows.select{|c| c.slide == slide}
+      library_ids_checked = params[:check].map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
+      
+      # if not relunch, and sample-di exists, then error
+      unless @params[:relaunch]
+        raise "Error(post /); you checked sample(s) that already has sample dir " if library_ids_checked.any?{|c| dir_exists_col? c}
+      end
+
+      mylog.info "post / called. slide=#{slide}; checked_ids=#{params[:check]}"
+      raise "Internal error; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
+
+      ok, prepkit = validate_prepkit( library_ids_checked )
+      unless ok
+        raise "unknown_prepkit=>[#{prepkit}]"
+      end
+
+      prepare_and_spawn(slide, library_ids_checked, @params[:relaunch] )
+      ProcessStatus.put( uuid, ProcessStatus::DONE )
+
+    rescue => e
+      STDERR.puts e.inspect
+      ProcessStatus.put( uuid, ProcessStatus::ERROR, msg = "InternalError: #{e.inspect.to_s}" )
+    ensure
+      $_post_allow = true    
+      puts 'post(/) ensured'
+    end
+  end
+
+  redirect to( "/get_post_status/#{uuid}" )
 end
 
 get '/form_cp_results/:slide' do
@@ -258,6 +305,13 @@ EOS
       
   end
 
+end
+
+def make_checkresults_all(slide)
+  dir = File.join( $SET.storage_root, slide )
+  res = CheckResults.new( 'check_results.log.all' , dir = dir )
+  samples = Dir[ File.join( dir, "*/" ) ]
+  res.add_samples( samples )
 end
 
 post '/form_remake_checkresults' do
@@ -456,7 +510,6 @@ def prepare_and_spawn(slide, checked, relaunch)
   group = checked.group_by { |col|
     $PREP.data.map(&:regex).find{ |reg| reg =~ col.prep_kit }
   }
-  require_relative "../calc_dup/make_run.rb"
   path_check = File.join($SET.root,"calc_dup/check_results.rb")
   # make run.sh for samplesdirs if not exists
   group.each do |regex, rows|

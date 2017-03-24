@@ -10,7 +10,7 @@ jQuery(function($) {
 	    type: $form.attr('method'),
 	    data: $form.serialize(),
 	    dataType: 'json',
-	    timeout: 600000,
+	    timeout: 1200000,
 
 	    beforeSend: function(xhr, settings) {
 		$button.attr('disabled', true);
