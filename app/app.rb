@@ -12,6 +12,7 @@ require 'fileutils'
 require 'sinatra'
 require 'sinatra/reloader'
 require 'sinatra/config_file'
+require 'sinatra/streaming'
 require 'json'
 
 set :root, File.expand_path( '../../.', __FILE__)
@@ -332,22 +333,26 @@ get '/all' do
   haml :table
 end
 
-# get '/graph/:slide' do
-#   slide = @params[:slide]
-#   mylog.info slide.inspect
-#   STDERR.puts slide.inspect
+get '/graph/:slide' do
+  slide = @params[:slide]
+  mylog.info slide.inspect
+  STDERR.puts slide.inspect
 
-#   if not File.exist? File.join($SET.root, 'public/graph/#{slide}.png' ) and not slide =~ /tmp/
-#     puts 'mk_graph()'
-#     mk_graph(slide)
-#   end
-#   haml :graph , :locals => {:slide => "#{slide}"}
-# end
+  if not File.exist? File.join($SET.root, "public/graph/#{slide}.png" ) and not /tmp/ === slide
+    # mk_graph(slide)
+  end
+  haml :graph , :locals => {:slide => "#{slide}"}
+end
 
 post '/graph/:slide' do
   slide = @params[:slide]
-  mk_graph(slide)
-  redirect to("/graph/#{slide}")
+  stream do |out|
+    out.write " "
+    out.flush
+    mk_graph(slide)
+    out << 'remake graph done'
+    out
+  end
 end
 
 def mk_graph(slide)
@@ -355,11 +360,22 @@ def mk_graph(slide)
     mylog.warn "invalud reqest slide=[#{slide}]"
     return
   end
-  system <<EOS
-mkdir -p #{$SET.root}/public/graph
-cd #{$SET.root}/public/graph && cat #{$SET.storage_root}/#{slide}/check_results.log | python #{$SET.root}/etc/mk_graph/mk_graph.py
-mv tmp.png #{$SET.root}/public/graph/#{slide}.png
-EOS
+  
+  FileUtils.mkdir_p 'public/graph'
+  input = CheckResults.json2oldformat( File.join( $SET.storage_root, slide, 'check_results.json' ) )
+  stdin,stdout,stderr, wait_thr = Open3.popen3( "python #{$SET.root}/etc/mk_graph/mk_graph.py #{$SET.root}/public/graph/#{slide}.png" )
+  stdin.puts input
+  o,r = stdout.read, stderr.read
+  unless wait_thr.value.success?
+    raise 'make graph script returns non-zero exit code'
+  end
+  
+#   `
+
+# cd #{$SET.root}
+# mkdir -p public/graph
+# ruby calc_dup/check_results.rb --file #{$SET.storage_root}/#{slide}/check_results.json --convert-rev | python etc/mk_graph/mk_graph.py public/graph/#{slide}.png
+# `
 end
 
 get '/graph-across-slides' do

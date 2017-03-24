@@ -5,7 +5,6 @@ require 'fileutils'
 require 'json'
 
 # premise: current dierctory is run-directory, each sample-directories exist under the current directory
-# take 1 arg; comma separated sampe-directories; ex. 6758_1_SS5UTR,6759_1_SS5UTR
 
 require_relative './calc_map_rate.rb'
 require_relative './calc_dup.rb'
@@ -40,25 +39,26 @@ class CheckResults
     end
     return ret
   end
-
+  
   def initialize( file, dir = '.' )
-    @dir = dir
     Dir.chdir( dir ) do
       @file = file
-      FileUtils.touch @file
-      @read = File.read( file )
-      raise unless  ( @read.split("\n").size % 3 ) == 0
+      if File.exists? @file
+        @results = JSON.parse( File.read( file ) )
+      else
+        @results = {}
+      end
     end
-
+    
   end
 
   def to_s()
-    print @read
+    JSON.pretty_generate(@results)
   end
   
   def sample_exist?( sample )
     raise if sample.to_s == ''
-    /^#{sample},/ === @read
+    @results.keys.include? sample
   end
 
   def sample_dir_exist?( sample )
@@ -69,18 +69,15 @@ class CheckResults
 
     samples = [samples] if samples.class == String
 
-    ret = []
     for sample in samples
       if sample_exist? sample
         STDERR.puts "warning: skip because sample exists: #{sample}"
         next
       end
-      ret << MakeCheckResults.sample_result( sample )
+      @results[sample] = MakeCheckResults.sample_result( sample )
     end
-    to_write = ret.join "\n"
-    
-    File.open( @file, 'a' ){ |f| f.puts to_write }
-    @read = File.read( file )
+    File.open( @file, 'w' ){ |f| f.puts self.to_s }
+    @read = File.read( @file )
   end
   
 end
@@ -154,7 +151,7 @@ module MakeCheckResults
       to_print <<  CalcMapRate.run( s )
       to_print <<  CalcDup.run( s )
       to_print << snv_stats( s )
-      # puts to_print.join("\n")
+      return to_print.join("\n")
     rescue => ex
       raise ex
     end
@@ -169,8 +166,8 @@ if __FILE__ == $0
   OptionParser.new do |o|
     o.on( '--file file', 'checkresult.log : json file' ){|e| opt[:file] = e }
     o.on( '--add add' , 'comma separated file to be added' ){|e| opt[:add] = e }
-    o.on( '--convert' , 'comma separated file to be added' ){|e| opt[:convert] = e }
-    o.on( '--convert-rev' , 'comma separated file to be added' ){|e| opt[:convertrev] = e }
+    o.on( '--convert' , 'old format(3 line per sample) to json' ){|e| opt[:convert] = e }
+    o.on( '--convert-rev' , 'json to old format' ){|e| opt[:convertrev] = e }
   end.parse!
 
   for req in [ :file ]
@@ -187,9 +184,8 @@ if __FILE__ == $0
 
   res = CheckResults.new( opt[:file] )
   if opt[:add]
-    samples = top[:add].split(',')
+    samples = opt[:add].split(',').map{ |e| e.gsub /\/$/, '' }
     res.add_samples( samples )
-    print res.to_s()
   else
     print res.to_s()
   end

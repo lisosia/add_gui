@@ -1,6 +1,8 @@
-%a(href = "/") home
-	
-%form(action="#" method="post")
+%form( id='remake' action="#" method="post")
   %input(type="submit" value="remake graph" class="button")
 
-%img(src="/graph/#{slide}.png" alt='graph png-file; mk_graph failed if this text appears')
+%input( type='hidden' id='slide' value="#{slide}" )
+%div( id='pre-img' )
+%img(src="/graph/#{slide}.png" alt='graph png-file; mk_graph failed if this text appears' id='img' )
+
+<script src='/js/graph.js'></script>
