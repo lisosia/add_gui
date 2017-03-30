@@ -251,7 +251,7 @@ post '/form_cp_results' do
 
   raise unless Dir.exists? $SET.copy_output_dir
   copy_output_dir = File.join( $SET.copy_output_dir , subdir)
-  FileUtils.mkdir_p copy_output_dir Dir.exists? copy_output_dir
+  FileUtils.mkdir_p copy_output_dir
 
   storage = File.join( $SET.storage_root, slide )
   raise unless Dir.exists? storage
@@ -262,6 +262,7 @@ bash #{File.join( $SET.root, "etc" , "cp_results.sh" ) } #{copy_output_dir} #{ l
 EOS
 
   ` #{cmd} `
+
   "#files copyed to #{copy_output_dir}; bash command are below<br>#{cmd}"
 end
 
@@ -330,13 +331,8 @@ end
 
 post '/showgraph/:slide' do
   slide = @params[:slide]
-  stream do |out|
-    out.write " "
-    out.flush
-    mk_graph(slide)
-    out << 'remake graph done'
-    out
-  end
+  mk_graph(slide)
+  redirect to("/showgraph/#{slide}")
 end
 
 def mk_graph(slide)
@@ -348,16 +344,23 @@ def mk_graph(slide)
   FileUtils.mkdir_p 'public/graph'
   # input = CheckResults.json2oldformat( dir = File.join( $SET.storage_root, slide ) )
   res = CheckResults.new( dir = File.join( $SET.storage_root, slide ) )
+  mylog.info "- checkresults loaded"
   if res.samples.size != $SET.rows_group[slide].size
     raise "sample size in check_results.json (=#{res.samples.size} ) does not match # of samples in NGS file (= $SET.rows_group(slide).size)"
   end
   input = res.to_s_old()
+  
+  mylog.info "- input data prepared : #{input[0..30]} ..."
   stdin,stdout,stderr, wait_thr = Open3.popen3( "python #{$SET.root}/etc/mk_graph/mk_graph.py #{$SET.root}/public/graph/#{slide}.png" )
+  mylog.info '- open3 opened'
   stdin.puts input
+  stdin.close
+  mylog.info '- write inputs done'
   o,r = stdout.read, stderr.read
+  mylog.info '- read stdout,stderr done'
   unless wait_thr.value.success?
     raise 'make graph script returns non-zero exit code'
-  end 
+  end   
   mylog.info "<--- end making graph @ silde == #{slide}"
  
 #   `

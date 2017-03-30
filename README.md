@@ -30,6 +30,9 @@ cd <this_app>
 bundle install --path ./vendor/bundle # look for Gemfile to know which gems to install, then locally  install gem(s)
 ### set config.yml , place makefile, NGS_\*\*\*.csv file. then prepare storage directory (set by config)
 bundle exec ruby ./app/app.rb -o 0.0.0.0 # 'bundle exec' means that you run ruby-app using locally installed gems
+
+(if you want to usert thin server explicitly, )
+bundle exec thin -R config.ru -t 6000 -p $PORT
 ```
 
 ## app structure
@@ -47,6 +50,10 @@ bundle exec ruby ./app/app.rb -o 0.0.0.0 # 'bundle exec' means that you run ruby
 + sim/ - for debug
 
 ### misc
+
+timeout時間が短いと動作しないので設定で変更する
++ config.yml でのタイムアウト
++ webサーバ自体のタイムアウト
 
 a ruby library is called 'gem'.  
 It is a little complicated to controll ruby-version and gem version.

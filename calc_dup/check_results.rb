@@ -49,11 +49,9 @@ class CheckResults
     ret = ''
     jj = JSON.parse( File.read(file) )
     for k,v in jj
-      if not samples.nil? and samples.any?{|libid| /#{libid}/ === k }
-        ret += v['result'] + "\n"
-      end
-    end
-    
+      next if not samples.nil? and not samples.any?{|libid| /#{libid}/ === k }
+      ret += v['result'] + "\n"
+    end    
     return ret
   end
   
