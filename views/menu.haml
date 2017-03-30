@@ -6,7 +6,7 @@
 -if dir_slide_exist? slide
   %p slide's directory exists;
   %a(href = "/progress/#{slide}") progress()
-  %a(href = "/graph/#{slide}") graph(if work done)
+  %a(href = "/showgraph/#{slide}") graph(if work done)
   %a(href = "/form_cp_results/#{slide}") form to copy results (cp_results.sh)
   %a(href = "/form_remake_checkresults/#{slide}") form to remake check_results.log (check_results.rb)
 -else
@@ -15,7 +15,7 @@
 <br/>
 
 %h4 *** links ***
-%a(href="/graph/#{slide}")
+%a(href="/showgraph/#{slide}")
 %a(href = "/form_cp_results/#{slide}") form to copy results (cp_results.sh)
 
 %h4 *** tasks ***

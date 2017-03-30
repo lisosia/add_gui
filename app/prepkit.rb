@@ -1,4 +1,5 @@
 require 'yaml'
+require_relative './config.rb'
 
 class UnknownPrepkitError < StandardError
   attr_reader :prepkit
@@ -13,7 +14,7 @@ class Prepkit
   HEADS = %w{regex suffix surepos target}.map(&:to_sym)
   Col = Struct.new("PrepCol", * HEADS)
 
-  def initialize( prep ) # prep is a array of array
+  def initialize( prep = load_config().prepfit_info ) # prep is a array of array
     raise unless prep.is_a? Array and prep[0].is_a? Array
     raise unless prep.size != HEADS.size
     @prep = prep

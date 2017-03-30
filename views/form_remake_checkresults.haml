@@ -18,12 +18,13 @@
     }
   }
 
+%textarea( rows='4' )= log
 
 %h1 form to remake check_results.log
 
 %p= "slide ===#{slide}==="
 
-%form(action="/form_remake_checkresults" method="post" name="form-#{slide}" onSubmit="return submitCheck()")
+%form(action="/form_remake_checkresults" method="post" name="form-#{slide}" )
 
   %input(type="hidden" name="slide" value="#{slide}")
 

@@ -270,49 +270,8 @@ get '/form_remake_checkresults/:slide' do
   raise if slide.nil?
   rows = $SET.rows_group[slide]
   raise 'internal error; #{slide} not found in ngs' if rows.nil?
-  haml :form_remake_checkresults, :locals => { :slide => slide, :rows =>rows }
-end
-
-def remake_checkresults( slide , rows, async= true, require_ret = false )
-  files = Dir[ File.join( $SET.storage_root, slide, '*' ) ]
-  fn = rows.map{ |r| files.find{|f| f =~ /#{r.library_id}/ } }
-  raise 'internal err; some of sample-dirs you requested are missing' if fn.any?(&:nil?)
-  fn = fn.map{ |n| n.split('/')[-1] }
-  
-
-  cmd = <<EOS
-cd #{ File.join( $SET.storage_root, slide ) }
-ruby -W0 #{ File.join( $SET.root, 'calc_dup', 'check_results.rb' ) } #{fn.join(',')} > check_results.log 2> check_results.log
-EOS
-  
-  cmd_sync = <<EOS
-cd #{ File.join( $SET.storage_root, slide ) }
-ruby -W0 #{ File.join( $SET.root, 'calc_dup', 'check_results.rb' ) } #{fn.join(',')} #{ require_ret ? '' : '> check_results.log' } 2>&1
-EOS
-  
-  
-
-  if async
-    pid = Process.spawn( cmd )
-    Process.detach( pid )
-    return { :pid => pid, :cmd => cmd }
-  else
-    ret = ` #{cmd_sync} `
-    if require_ret
-      return { :ret => ret, :cmd => cmd_sync }
-    else
-      return { :cmd => cmd_sync }
-    end
-      
-  end
-
-end
-
-def make_checkresults_all(slide)
-  dir = File.join( $SET.storage_root, slide )
-  res = CheckResults.new( 'check_results.log.all' , dir = dir )
-  samples = Dir[ File.join( dir, "*/" ) ]
-  res.add_samples( samples )
+  log = CheckResults.new(dir=File.join($SET.storage_root,slide)).to_s
+  haml :form_remake_checkresults, :locals => { :slide => slide, :rows =>rows, :log => log }
 end
 
 post '/form_remake_checkresults' do
@@ -323,9 +282,37 @@ post '/form_remake_checkresults' do
   checked = params[:check].map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
   return "Error; you checked sample(s) that does not have sample dir " if checked.any?{|c| ! dir_exists_col? c}
 
-  ret = remake_checkresults( slide, checked, async=true )
-  "background-job spawned;wait a minutes to complete; commands are<br>#{ ret[:cmd] }"
-  
+  ret = remake_checkresults( slide, checked, async= false )
+  # redirect to(/form_remake_checkresults/#{slide})
+end
+
+# rows: array of samples
+def remake_checkresults( slide , rows, async = true, basename = 'check_results.json' )
+  outfile = File.join( $SET.storage_root, slide, basename )
+  FileUtils.rm_f outfile
+  files = Dir[ File.join( $SET.storage_root, slide, '*' ) ]
+
+  def write( outfile, libids )
+    c = CheckResults.new( dir=File.dirname(outfile) )
+    c.add_samples( libids )
+    return c.to_s
+  end
+
+  if async # background
+    Thread.new(outfile ,rows.map(&:library_id) ) do |outfile, libids|
+      write(  outfile, libids )
+    end
+  else
+    write( outfile, rows.map(&:library_id) )
+  end
+end
+
+
+def make_checkresults_all(slide)
+  dir = File.join( $SET.storage_root, slide )
+  res = CheckResults.new( dir = dir, 'check_results.log.all' ,  )
+  samples = Dir[ File.join( dir, "*/" ) ]
+  res.add_samples( samples )
 end
 
 get '/all' do
@@ -333,18 +320,15 @@ get '/all' do
   haml :table
 end
 
-get '/graph/:slide' do
+get '/showgraph/:slide' do
   slide = @params[:slide]
-  mylog.info slide.inspect
-  STDERR.puts slide.inspect
-
   if not File.exist? File.join($SET.root, "public/graph/#{slide}.png" ) and not /tmp/ === slide
     # mk_graph(slide)
   end
   haml :graph , :locals => {:slide => "#{slide}"}
 end
 
-post '/graph/:slide' do
+post '/showgraph/:slide' do
   slide = @params[:slide]
   stream do |out|
     out.write " "
@@ -360,16 +344,22 @@ def mk_graph(slide)
     mylog.warn "invalud reqest slide=[#{slide}]"
     return
   end
-  
+  mylog.info "-> start making graph @ silde == #{slide}"
   FileUtils.mkdir_p 'public/graph'
-  input = CheckResults.json2oldformat( File.join( $SET.storage_root, slide, 'check_results.json' ) )
+  # input = CheckResults.json2oldformat( dir = File.join( $SET.storage_root, slide ) )
+  res = CheckResults.new( dir = File.join( $SET.storage_root, slide ) )
+  if res.samples.size != $SET.rows_group[slide].size
+    raise "sample size in check_results.json (=#{res.samples.size} ) does not match # of samples in NGS file (= $SET.rows_group(slide).size)"
+  end
+  input = res.to_s_old()
   stdin,stdout,stderr, wait_thr = Open3.popen3( "python #{$SET.root}/etc/mk_graph/mk_graph.py #{$SET.root}/public/graph/#{slide}.png" )
   stdin.puts input
   o,r = stdout.read, stderr.read
   unless wait_thr.value.success?
     raise 'make graph script returns non-zero exit code'
-  end
-  
+  end 
+  mylog.info "<--- end making graph @ silde == #{slide}"
+ 
 #   `
 
 # cd #{$SET.root}
@@ -404,10 +394,10 @@ post '/graph-across-slides/:slides' do
       row = rows.select{|c| c.library_id == lib_id}[0]
     end.group_by{| row | row[:slide] }
     
-    inputs = rows_by_slide.map do |slide ,rows|
-      ret = remake_checkresults( slide ,rows , async=false, require_ret = true )
-      ret[:ret].chomp.gsub( /^/, "#{slide}:" )
-    end.join("\n").squeeze("\n")
+
+    inputs = rows_by_slide.map do |silde ,rows|
+      CheckResults.new( dir = File.join($SET.storage_root,slide) ).to_s_old( rows.map(&:library_id) )
+    end.join("\n")
     
     File.open( File.join( $SET.root, 'tmponput' ), 'w' ){|f| f.write inputs }
     outpng = "tmp_#{slides.join('-')}_#{ Time.now().strftime('%Y%m%d-%H%M%S') }.png"  
