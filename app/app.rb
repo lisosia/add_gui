@@ -169,8 +169,12 @@ get "/get_post_status/:uuid" do
   ProcessStatus.expire() # remove expired data
   haml :get_post_status, :locals => { :uuid => uuid }
 end
+
 $_post_allow = true
 post '/' do
+  mylog.info "post(/) called. slide=#{@params[:slide]}; checked_ids=#{params[:check]}; action=#{@params[:action]}"
+  prepare_only = @params[:action] == 'preparation'
+
   uuid = SecureRandom.uuid
   unless $_post_allow
     status 500
@@ -179,38 +183,44 @@ post '/' do
   $_post_allow = false
   ProcessStatus.put( uuid, ProcessStatus::PROCESSING )
 
-  Thread.start do
-    begin 
+  slide = @params[:slide]
 
-      slide = @params[:slide]
-
-      raise "empty post; check some samples" if @params[:check].nil?
-      rows = $SET.rows.select{|c| c.slide == slide}
-      library_ids_checked = params[:check].map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
+  raise "empty post; check some samples" if @params[:check].nil?
+  rows = $SET.rows_group[slide]
+  library_ids_checked = params[:check].map do |lib_id| 
+    sel = rows.find{|c| c.library_id == lib_id } 
+    raise "Internal Error: sample(slie=#{slide},library_id=#{lib_id}) not found" if sel.nil?
+    sel
+  end
       
-      # if not relunch, and sample-di exists, then error
-      unless @params[:relaunch]
-        raise "Error(post /); you checked sample(s) that already has sample dir " if library_ids_checked.any?{|c| dir_exists_col? c}
-      end
+  # if not relunch, and sample-di exists, then error
+  unless @params[:relaunch]
+    raise "Error(post /); you checked sample(s) that already has sample dir " if library_ids_checked.any?{|c| dir_exists_col? c}
+  end
+  
+  ok, prepkit = validate_prepkit( library_ids_checked )
+  unless ok
+    raise "unknown_prepkit=>[#{prepkit}]"
+  end
 
-      mylog.info "post / called. slide=#{slide}; checked_ids=#{params[:check]}"
-      raise "Internal error; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
-
-      ok, prepkit = validate_prepkit( library_ids_checked )
-      unless ok
-        raise "unknown_prepkit=>[#{prepkit}]"
-      end
-
-      prepare_and_spawn(slide, library_ids_checked, @params[:relaunch] )
-      ProcessStatus.put( uuid, ProcessStatus::DONE )
-
-    rescue => e
-      STDERR.puts e.inspect
+  if prepare_only
+    filename = prepare_and_spawn(slide, library_ids_checked, @params[:relaunch], prepare_only )    
+    return "Preparation finished. file to execute is #{filename} @ #{File.join($SET.storage_root,slide)}"
+  else
+    Thread.start do
+      begin 
+        prepare_and_spawn(slide, library_ids_checked, @params[:relaunch] )
+        ProcessStatus.put( uuid, ProcessStatus::DONE )
+        
+      rescue => e
+        STDERR.puts e.inspect
       ProcessStatus.put( uuid, ProcessStatus::ERROR, msg = "InternalError: #{e.inspect.to_s}" )
-    ensure
-      $_post_allow = true    
-      puts 'post(/) ensured'
+      ensure
+        $_post_allow = true    
+        puts 'post(/) ensured'
+      end
     end
+    
   end
 
   redirect to( "/get_post_status/#{uuid}" )
@@ -398,10 +408,10 @@ post '/graph-across-slides/:slides' do
     end.group_by{| row | row[:slide] }
     
 
-    inputs = rows_by_slide.map do |silde ,rows|
-      CheckResults.new( dir = File.join($SET.storage_root,slide) ).to_s_old( rows.map(&:library_id) )
-    end.join("\n")
-    
+    inputs = rows_by_slide.map do |slide ,rows|
+      ret = CheckResults.new( dir = File.join($SET.storage_root,slide) ).to_s_old( rows.map(&:library_id) )
+    end.join("")
+    p inputs
     File.open( File.join( $SET.root, 'tmponput' ), 'w' ){|f| f.write inputs }
     outpng = "tmp_#{slides.join('-')}_#{ Time.now().strftime('%Y%m%d-%H%M%S') }.png"  
     cmd = <<EOS
@@ -507,19 +517,22 @@ def validate_prepkit(checked)
 end
 
 # - checked - Array of Ngs::Col
-def prepare_and_spawn(slide, checked, relaunch)
+def prepare_and_spawn(slide, checked, relaunch, prepare_only = false )
   
   if relaunch # if relaunch , check duplication of task; 
-    raise "launched task and running task conflict at slide==#{slide}. wait until the tasks finishes or uncheck 'for-relaunch' button " if TaskHgmd.tasks_find_by_slide(slide).where( :status => 'NotDone' ).to_a.size > 0
+    raise "launched task and running task conflict at slide==#{slide}. Wait until the tasks finishes or uncheck 'for-relaunch' button " if TaskHgmd.tasks_find_by_slide(slide).where( :status => 'NotDone' ).to_a.size > 0
   end
   
   FileUtils.mkdir_p File.join( $SET.storage_root, slide ), { :mode => 0755 }
-  raise 'internal_error' unless ( checked.is_a? Array and checked[0].is_a? NGS::Col)
+  raise 'Internal error' unless ( checked.is_a? Array and checked[0].is_a? NGS::Col)
 
+  # grouped by prepkit
   group = checked.group_by { |col|
     $PREP.data.map(&:regex).find{ |reg| reg =~ col.prep_kit }
   }
   path_check = File.join($SET.root,"calc_dup/check_results.rb")
+
+  threads = []
   # make run.sh for samplesdirs if not exists
   group.each do |regex, rows|
     raise "internal error; unknown_prepkit" if regex.nil?
@@ -536,7 +549,8 @@ def prepare_and_spawn(slide, checked, relaunch)
   bashfile = make_auto_run_sh($SET.storage_root, slide,  group , path_check )
 
   # launch task
-  TaskHgmd.spawn( slide, checked.map(&:library_id), bashfile )
+  TaskHgmd.spawn( slide, checked.map(&:library_id), bashfile ) unless prepare_only
+  return bashfile
 end
 
 

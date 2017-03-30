@@ -54,7 +54,8 @@
   <br/>
   <br/>
   %input(type="hidden" name="slide" value="#{slide}")
-  %button(class="button" )  Send  slide:#{slide}
+  %button(class="button" name='action' value='launch' ) launch task
+  %button(class="button" name='action' value='preparation' ) preparation only
   %input(type="button" value='selectAll' onclick="toggleBox(  'form-#{slide}', 'checked') " )
   %input(type="button" value='selectNone' onclick="toggleBox( 'form-#{slide}', '')" )    
   ||
@@ -90,3 +91,4 @@
 
 
 / <script type='text/javascript' src='/js/post.js'></script>
+<script type='text/javascript' src='/js/jquery.js'></script>

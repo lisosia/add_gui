@@ -46,12 +46,13 @@ class CheckResults
 
   # if samples == nil, return all
   def self.json2oldformat(file, samples = nil)
+    print_all = samples.nil?
     ret = ''
     jj = JSON.parse( File.read(file) )
     for k,v in jj
-      next if not samples.nil? and not samples.any?{|libid| /#{libid}/ === k }
+      next if not print_all and not samples.any?{|libid| /#{libid}/ === k }
       ret += v['result'] + "\n"
-    end    
+    end
     return ret
   end
   
