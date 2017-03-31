@@ -1,7 +1,8 @@
 %div(id='result' style="color: red; font-size: 20px;")
 
 %form(action="#" method="post" name="graph-select" id="form-ajax" )
-  %button( class='button') make graph
+  %button( class='button' style='display: block;') make graph
+  %br
   - for slide, rows in table_group_by_slide
     =haml :table_samples, :locals => { :slide => slide, :rows => rows, :box => true }
 

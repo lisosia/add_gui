@@ -49,10 +49,18 @@ class CheckResults
     print_all = samples.nil?
     ret = ''
     jj = JSON.parse( File.read(file) )
-    for k,v in jj
-      next if not print_all and not samples.any?{|libid| /#{libid}/ === k }
-      ret += v['result'] + "\n"
+
+    ret = ''
+    if print_all
+      ret = jj.values.map{ |v| v['result'].chomp }.join("\n")
+    else      
+      samples.each do |s|
+        k = jj.keys.find{|k| /#{s}/ === k}
+        raise ArgumentError, "sample #{s} not found in logfile" if k.nil?
+        ret += jj[k]['result'].chomp + "\n"
+      end
     end
+
     return ret
   end
   
@@ -242,11 +250,4 @@ if __FILE__ == $0
     print res.to_s()
   end
   
-  
-  # if ARGV.size == 0
-  #   raise 'usage: ruby <thisfile> comma-separated-samples'
-  # end
-  # samples = ARGV[0].split(",")
-  # samples.map!{|s| ( s[-1] == '/')? s[0...-1] : s} # cut last '/' if exists
-  # MakeCheckResults.print( samples )
 end

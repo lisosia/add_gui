@@ -231,7 +231,7 @@ get '/form_cp_results/:slide' do
   raise if slide.nil?
   rows = $SET.rows_group[slide]
   raise 'internal error; #{slide} not found in ngs' if rows.nil?
-  haml :form_cp_results, :locals => { :slide => slide, :rows =>rows }
+  haml :form_cp_results, :locals => { :slide => slide, :rows =>rows, :header => @show_headers }
 end
 
 post '/form_cp_results' do
@@ -239,8 +239,12 @@ post '/form_cp_results' do
   raise if slide.nil?
 
   return "empty post; please return to previous page" if @params[:check].nil?
-  rows = $SET.rows.select{|c| c.slide == slide}
-  library_ids_checked = params[:check].map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
+  checked_ids = @params[:check].map do |e|
+    slide, libid = e.split('@')
+    libid
+  end
+  rows = $SET.rows_group[slide]
+  library_ids_checked = checked_ids.map{ |lib_id| rows.find{|c| c.library_id == lib_id} }
   return "Error; you checked sample(s) that does not have sample dir " if library_ids_checked.any?{|c| ! dir_exists_col? c}
   mylog.info 'post form_cp_results / called. slide=#{slide}; checked_ids=#{library_ids_checked}'
   raise "internal error; not such slide<#{slide}>" if library_ids_checked.any?{ |r| r.nil? }
@@ -401,26 +405,27 @@ end
 post '/graph-across-slides/:slides' do
   begin
     slides = @params[:slides].split('-')
+    raise 'no sample cheched' if @params[:check].nil?
     rows_by_slide = @params[:check].map do |i|
       slide, lib_id = i.split('@') 
       rows = $SET.rows.select{|c| c.slide == slide}
       row = rows.select{|c| c.library_id == lib_id}[0]
     end.group_by{| row | row[:slide] }
     
-
+    # prepare inputs
     inputs = rows_by_slide.map do |slide ,rows|
       ret = CheckResults.new( dir = File.join($SET.storage_root,slide) ).to_s_old( rows.map(&:library_id) )
     end.join("")
-    p inputs
-    File.open( File.join( $SET.root, 'tmponput' ), 'w' ){|f| f.write inputs }
+    File.open( File.join( $SET.root, 'log/_scriptlog' ), 'w' ){|f| f.write inputs }
+    
+    # make graph
     outpng = "tmp_#{slides.join('-')}_#{ Time.now().strftime('%Y%m%d-%H%M%S') }.png"  
-    cmd = <<EOS
-mkdir -p #{$SET.root}/public/graph
-cd #{$SET.root}/public/graph
-echo -n '#{inputs}' | python #{$SET.root}/etc/mk_graph/mk_graph.py #{$SET.root}/public/graph/#{ outpng }
-EOS
-    ` #{cmd}  `
-    raise 'internal error : png not made' unless File.exists?( File.join( "#{$SET.root}/public/graph", outpng ) )
+    graphdir = File.join( $SET.root, 'public/graph' )
+    FileUtils.mkdir_p graphdir
+    Dir.chdir(graphdir) do
+      so,se,status = Open3.capture3( "echo -n '#{inputs}' | python #{$SET.root}/etc/mk_graph/mk_graph.py #{$SET.root}/public/graph/#{ outpng }" )
+      raise 'internal error : make png failed for some reason. stderr=[#{se}]?' unless File.exists?( File.join( "#{$SET.root}/public/graph", outpng ) )
+    end
     
     return { :link => "/graph/#{outpng}", :success => true }.to_json
 

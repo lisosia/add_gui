@@ -1,26 +1,55 @@
 -# args; slide == slide 
 -# args; headers == headers to show
 -# args; rows == rows of sample, from 
--# args; box == true or false,nil
+-# args(optional; box == true or false,nil
+- box ||= false
+-# args(optional); disable_box == true
+- disable_box ||= true
+-# args(optional) disable_nox_invert; false or true
+- disable_box_invert ||= false
 
-%table(border="1")
-  %thread
-    %tr
-      - for header in @show_headers
-        %th= header.to_s
-      - if defined? box and box
-        %th box
-      %th dir_exists?
-  %tbody
-    - for row in rows
+%div(id='table_samples_container')
+
+  - if box
+    %input(type='checkbox' id="toggle-at-#{slide}" class='toggle-box')
+    %label(for="toggle-at-#{slide}") toggle
+  
+  %table(border="1" class='sample-table')
+    %thread
       %tr
-        - for cell in @show_headers.map{|h| row.send(h)}
-          %td= cell.to_s
-        - lib_id = row.library_id.to_s
-
+        - for header in @show_headers
+          %th= header.to_s
         - if defined? box and box
+          %th box
+        %th dir_exists?
+    %tbody
+      - for row in rows
+        %tr
+          - for cell in @show_headers.map{|h| row.send(h)}
+            %td= cell.to_s
+          - lib_id = row.library_id.to_s
+  
+          - ex = dir_exists?(slide, lib_id, row.prep_kit )
+          - if box
+            %td
+              - if disable_box and ( !ex ^ disable_box_invert )
+                %input( type='checkbox' name="check[]" value="#{slide}@#{lib_id}" disabled)
+              - else
+                %input( type='checkbox' name="check[]" value="#{slide}@#{lib_id}" )
           %td
-            %input( type='checkbox' name="check[]" value="#{slide}@#{row.library_id.to_s}" )
-        - ex = dir_exists?(slide, lib_id, row.prep_kit )
-        %td
-          #exist= ex ? 'exists' : '___no___'
+            #exist= ex
+  
+<script>
+$(function(){
+$('.toggle-box').on('change', function(ev){
+var checked = this.checked;
+$(this).siblings('.sample-table').find('input[type=checkbox]').each( function(index, box){
+if( $(box).prop('disabled') ){
+$(box).prop('checked', false);
+}else{
+$(box).prop('checked', checked);
+}
+});
+});
+});
+</script>
