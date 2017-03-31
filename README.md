@@ -18,6 +18,14 @@ web based app to process data
 
 ### app set up from scratch (centOS)
 
+`
+cd public js
+# download public/js/jquery-2.2.4.min.js to public/js
+wget https://code.jquery.com/jquery-2.2.4.min.js
+ln -s jquery-2.2.4.min.js jquery.js
+`
+
+
 ```
 sudo yum install ruby ruby-devel
 # ruby --verson
