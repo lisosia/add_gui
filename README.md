@@ -32,7 +32,7 @@ bundle install --path ./vendor/bundle # look for Gemfile to know which gems to i
 bundle exec ruby ./app/app.rb -o 0.0.0.0 # 'bundle exec' means that you run ruby-app using locally installed gems
 
 (if you want to usert thin server explicitly, )
-bundle exec thin -R config.ru -t 6000 -p $PORT
+bundle exec thin start -R config.ru -t 6000 -p $PORT
 ```
 
 ## app structure

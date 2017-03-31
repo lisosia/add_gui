@@ -210,6 +210,7 @@ post '/' do
 
   if prepare_only
     filename = prepare_and_spawn(slide, library_ids_checked, @params[:relaunch], prepare_only )    
+    $_post_allow = true    
     return "Preparation finished. file to execute is #{filename} @ #{File.join($SET.storage_root,slide)}"
   else
     Thread.start do

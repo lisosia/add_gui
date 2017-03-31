@@ -1,10 +1,26 @@
 root: /home/haito/Work/gui_viewer
 storage_root: ./sim/storage/
 ngs_file: ./sim/ngs.csv
-db_file: ./tmp/tasklog.sqlite3
+db_file: ./log/tasklog.sqlite3
 makefile_path: ./tmp/makefile_dummy
-# array of [regex, suffix, surepos_filepath, taget_bases]
+
+# array of array := [ regexp to match prepkit string (ruby Regexp.new(arg) ), file-suffix, sure_pos-file, target_bases ]
+# 0th-colum first imterpreted as ruby string by YAML.load_file, then pass to Regexp.new( string )
+# first matched regex would be used
+## prep_kit is <preparation ket> column in ngs file
 prepkit_info: [
+[ "^Illumina TruSeq" , '_TruSeq', "/grid2/personal-genome/BED/TruSeq-Exome-Targeted-Regions-BED-file", 62085295 ],
+[ "RNA" , '_RNA', '', '' ],
+[ "^TruSeq DNA PCR-Free Sample Prep Kit" , '_WG', '', 3095677412],
 ["prep1", "SUF1", "", 10001],
 ["prep2", "SUF2", "", 10002]
 ]
+
+# for form to copy output ; /form_cp_results
+copy_output_dir: /tmp/out
+
+# place is <place> coumn in ngs file
+place2dirname: { 
+"sinke" : 'todai-sinkei-naika' ,  
+"AAAAAAA" : 'testjfdksljfkls'
+}
