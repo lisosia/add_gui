@@ -32,6 +32,7 @@ sudo yum install ruby ruby-devel
 sudo yum install gem
 # gem --version
 # gem env
+gem install bundler
 sudo yum install sqlite sqlite-devel
 git clone <this_app>
 cd <this_app>
