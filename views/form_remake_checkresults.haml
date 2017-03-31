@@ -1,23 +1,4 @@
-:javascript
-  function toggleBox(form, v){
-    var f = document.forms[form];
-    for(var i=0;i < f.length; i++){
-      if(f.elements[i].disabled && v=='checked'){continue;}
-      console.log( f.elements[i].exists )
-      f.elements[i].checked = v;
-    }
-  }
-
-:javascript
-  function submitCheck(){
-    if(window.confirm( 'remake check_results.log ? ' )){
-      return true;
-    }else{
-      window.alert('cancelled');
-      return false;
-    }
-  }
-
+check_results.json
 %textarea( rows='4' )= log
 
 %h1 form to remake check_results.log
@@ -27,33 +8,6 @@
 %form(action="/form_remake_checkresults" method="post" name="form-#{slide}" )
 
   %input(type="hidden" name="slide" value="#{slide}")
+  %input(type="submit" value="remake check_results.json of slide:#{slide}" class="button")
 
-  %input(type="submit" value="remake check_results.log of slide:#{slide}" class="button")
-  %input(type="button" value='selectAll' onclick="toggleBox(  'form-#{slide}', 'checked') " )
-  %input(type="button" value='selectNone' onclick="toggleBox( 'form-#{slide}', '')" )    
-  <br/><br/> 
-
-  %table(border="1")
-    %thread
-      %tr
-        - for header in @show_headers
-          %th= header.to_s
-        %th box
-        %th dir_exists?
-    %tbody
-      - for row in rows
-        %tr
-          - for cell in @show_headers.map{|h| row.send(h)}
-            %td= cell.to_s
-          - lib_id = row.library_id.to_s
-          - ex = dir_exists?(slide, lib_id, row.prep_kit )
-
-          - if ! ex
-            %td
-              %input(type="checkbox" name="check[]" value="#{lib_id}" disabled )
-          - else
-            %td
-              %input(type="checkbox" name="check[]" value="#{lib_id}" )
-
-          %td
-            #exist= ex ? 'exists' : '___no___'
+  =haml :table_samples, :locals => { :slide => slide, :rows => rows, :box => true }

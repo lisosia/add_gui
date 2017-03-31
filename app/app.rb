@@ -186,8 +186,13 @@ post '/' do
   slide = @params[:slide]
 
   raise "empty post; check some samples" if @params[:check].nil?
+  checked_ids = @params[:check].map do |e|
+    slide, libid = e.split('@')
+    libid
+  end
+
   rows = $SET.rows_group[slide]
-  library_ids_checked = params[:check].map do |lib_id| 
+  library_ids_checked = checked_ids.map do |lib_id| 
     sel = rows.find{|c| c.library_id == lib_id } 
     raise "Internal Error: sample(slie=#{slide},library_id=#{lib_id}) not found" if sel.nil?
     sel
@@ -293,8 +298,13 @@ post '/form_remake_checkresults' do
   slide = @params[:slide]
   raise if slide.nil?
   return "empty post; please return to previous page" if @params[:check].nil?
+  checked_ids = @params[:check].map do |e|
+    slide, libid = e.split('@')
+    libid
+  end
+
   rows = $SET.rows.select{|c| c.slide == slide}
-  checked = params[:check].map{ |lib_id| rows.select{|c| c.library_id == lib_id}[0] }
+  checked = checked_ids.map{ |lib_id| rows.find{|c| c.library_id == lib_id} }
   return "Error; you checked sample(s) that does not have sample dir " if checked.any?{|c| ! dir_exists_col? c}
 
   ret = remake_checkresults( slide, checked, async= false )

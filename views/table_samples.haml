@@ -1,5 +1,6 @@
 -# args; slide == slide 
--# args; headers == headers to show
+-# args(optonal); array of columns to show
+- headers ||= @show_headers
 -# args; rows == rows of sample, from 
 -# args(optional; box == true or false,nil
 - box ||= false
@@ -17,7 +18,7 @@
   %table(border="1" class='sample-table')
     %thread
       %tr
-        - for header in @show_headers
+        - for header in headers
           %th= header.to_s
         - if defined? box and box
           %th box
@@ -25,7 +26,7 @@
     %tbody
       - for row in rows
         %tr
-          - for cell in @show_headers.map{|h| row.send(h)}
+          - for cell in headers.map{|h| row.send(h)}
             %td= cell.to_s
           - lib_id = row.library_id.to_s
   
@@ -33,9 +34,9 @@
           - if box
             %td
               - if disable_box and ( !ex ^ disable_box_invert )
-                %input( type='checkbox' name="check[]" value="#{slide}@#{lib_id}" disabled)
+                %input( type='checkbox' name="check[]" value="#{slide}@#{lib_id}" direxists="#{ex}" disabled)
               - else
-                %input( type='checkbox' name="check[]" value="#{slide}@#{lib_id}" )
+                %input( type='checkbox' name="check[]" value="#{slide}@#{lib_id}" direxists="#{ex}" )
           %td
             #exist= ex
   

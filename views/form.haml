@@ -56,38 +56,11 @@
   %input(type="hidden" name="slide" value="#{slide}")
   %button(class="button" name='action' value='launch' ) launch task
   %button(class="button" name='action' value='preparation' ) preparation only
-  %input(type="button" value='selectAll' onclick="toggleBox(  'form-#{slide}', 'checked') " )
-  %input(type="button" value='selectNone' onclick="toggleBox( 'form-#{slide}', '')" )    
   ||
-  for relaunch
   %input(id="relaunch" name="relaunch" type="checkbox" value='for-relaunch' onclick="toggleRelaunch( 'form-#{slide}' )" )    
-   
-
-  %table(border="1")
-    %thread
-      %tr
-        - for header in @show_headers
-          %th= header.to_s
-        %th box
-        %th dir_exists?
-    %tbody
-      - for row in rows
-        %tr
-          - for cell in @show_headers.map{|h| row.send(h)}
-            %td= cell.to_s
-          - lib_id = row.library_id.to_s
-          - ex = dir_exists?(slide, lib_id, row.prep_kit )
-
-          - if ex
-            %td
-              %input(type="checkbox" name="check[]" value="#{lib_id}" direxists="true" disabled )
-          - else
-            %td
-              %input(type="checkbox" name="check[]" value="#{lib_id}" direxists="false" )
-
-          %td
-            #exist= ex ? 'exists' : '___no___'
-
+  %label(for='relaunch') for_relaunch (job to processs samples that has been processed already)
+  ||
+  =haml :table_samples, :locals => { :slide => slide, :rows => rows, :headers => @show_headers, :box => true, :disable_box_invert => true }
 
 
 / <script type='text/javascript' src='/js/post.js'></script>
